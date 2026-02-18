@@ -1,13 +1,13 @@
 :root {
     --bg: #0d1117; --header: #161b22; --accent: #58a6ff;
     --success: #3fb950; --border: #30363d; --text: #c9d1d9;
-    --gold: #d4af37; --danger: #f85149;
+    --danger: #f85149;
 }
 
 body {
     margin: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, sans-serif;
-    display: flex; flex-direction: column; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
 }
 
 .overlay {
@@ -27,61 +27,48 @@ body {
     padding: 15px 40px; border-radius: 8px; font-size: 1.2rem;
     font-weight: bold; cursor: pointer; transition: transform 0.2s; margin: 10px;
 }
-
 .btn-main:hover { transform: scale(1.05); filter: brightness(1.2); }
-
-/* サイドバーのスキップボタン */
-.btn-skip {
-    background: transparent; color: var(--danger); border: 1px solid var(--danger);
-    width: 100%; padding: 10px; border-radius: 4px; cursor: pointer; margin-top: 20px;
-    font-size: 0.8rem; opacity: 0.6;
-}
-.btn-skip:hover { opacity: 1; background: rgba(248, 81, 73, 0.1); }
 
 header {
     background: var(--header); padding: 12px 20px;
     display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 
-#app-body { display: flex; height: 75vh; }
-#terminal-box { flex: 1; background: #000; overflow: hidden; }
+#app-body { display: flex; flex: 1; overflow: hidden; }
 
-#sidebar { width: 320px; border-left: 1px solid var(--border); padding: 20px; overflow-y: auto; }
+#terminal-box { 
+    flex: 1; background: #000; padding: 5px; 
+    overflow: hidden; display: block;
+}
 
-#solution-article { display: none; background: #161b22; border-top: 4px solid var(--success); padding: 40px 20px; }
+#sidebar { 
+    width: 320px; border-left: 1px solid var(--border); 
+    padding: 20px; overflow-y: auto; flex-shrink: 0;
+}
+
+.btn-skip {
+    background: transparent; color: var(--danger); border: 1px solid var(--danger);
+    width: 100%; padding: 10px; border-radius: 4px; cursor: pointer; margin-top: 20px;
+    font-size: 0.8rem; opacity: 0.6; transition: 0.2s;
+}
+.btn-skip:hover { opacity: 1; background: rgba(248, 81, 73, 0.1); }
+
+#solution-article { 
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    background: #161b22; border-top: 4px solid var(--success); 
+    padding: 20px; z-index: 100; max-height: 40vh; overflow-y: auto;
+    display: none;
+}
 .article-inner { max-width: 800px; margin: 0 auto; }
+.btn-next { background: var(--success); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 15px; }
 
-.btn-next { background: var(--success); color: white; border: none; padding: 15px 30px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; }
 .hidden { display: none; }
 
-/* モバイル対応（画面幅が768px以下の場合） */
+/* Mobile View */
 @media screen and (max-width: 768px) {
-    #app-body {
-        flex-direction: column; /* 縦並びに変更 */
-        height: auto;
-    }
-
-    #terminal-box {
-        width: 100%;
-        height: 50vh; /* 画面の半分をターミナルに。これで確実に見えるようになります */
-        min-height: 300px;
-    }
-
-    #sidebar {
-        width: 100%; /* サイドバーも全幅に */
-        border-left: none;
-        border-top: 1px solid var(--border);
-        box-sizing: border-box;
-        height: auto;
-        padding-bottom: 40px;
-    }
-
-    header {
-        font-size: 0.8rem;
-    }
-
-    #start-screen h1 {
-        font-size: 2.2rem;
-    }
+    #app-body { flex-direction: column; overflow-y: auto; }
+    #terminal-box { height: 50vh; flex: none; }
+    #sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: none; }
+    #start-screen h1 { font-size: 2.2rem; }
 }
