@@ -54,3 +54,34 @@ header {
 
 .btn-next { background: var(--success); color: white; border: none; padding: 15px 30px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; }
 .hidden { display: none; }
+
+/* モバイル対応（画面幅が768px以下の場合） */
+@media screen and (max-width: 768px) {
+    #app-body {
+        flex-direction: column; /* 縦並びに変更 */
+        height: auto;
+    }
+
+    #terminal-box {
+        width: 100%;
+        height: 50vh; /* 画面の半分をターミナルに。これで確実に見えるようになります */
+        min-height: 300px;
+    }
+
+    #sidebar {
+        width: 100%; /* サイドバーも全幅に */
+        border-left: none;
+        border-top: 1px solid var(--border);
+        box-sizing: border-box;
+        height: auto;
+        padding-bottom: 40px;
+    }
+
+    header {
+        font-size: 0.8rem;
+    }
+
+    #start-screen h1 {
+        font-size: 2.2rem;
+    }
+}
