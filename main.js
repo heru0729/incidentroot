@@ -8,7 +8,7 @@ let hintCount = 0;
 let missCount = 0;
 let startTime = 0;
 let timerInterval = null;
-let hasSkipped = false;
+let currentStageBaseScore = 100;
 
 const term = new Terminal({
     cursorBlink: true, fontSize: 16, fontFamily: '"JetBrains Mono", monospace',
@@ -32,10 +32,9 @@ function startGame(isResume = false) {
     if (isResume) {
         currentLvl = parseInt(localStorage.getItem('incident_root_lvl')) || 0;
         score = parseInt(localStorage.getItem('incident_root_score')) || 0;
-        hasSkipped = localStorage.getItem('incident_root_skipped') === 'true';
     } else {
         localStorage.clear();
-        score = 0; currentLvl = 0; hasSkipped = false; hintCount = 0;
+        score = 0; currentLvl = 0;
     }
     document.getElementById('start-screen').style.display = 'none';
     loadStage();
@@ -44,6 +43,8 @@ function startGame(isResume = false) {
 function loadStage() {
     if (currentLvl >= stagesData.length) { showResult(); return; }
     const s = stagesData[currentLvl];
+    currentStageBaseScore = 100;
+    
     document.getElementById('lvl-idx').innerText = currentLvl + 1;
     document.getElementById('stg-title').innerText = s.title;
     document.getElementById('stg-desc').innerText = s.desc;
@@ -52,7 +53,6 @@ function loadStage() {
     
     localStorage.setItem('incident_root_lvl', currentLvl);
     localStorage.setItem('incident_root_score', score);
-    localStorage.setItem('incident_root_skipped', hasSkipped);
 
     term.clear();
     term.writeln(`\x1b[1;33m--- LEVEL ${currentLvl + 1}: ${s.title} ---\x1b[0m`);
@@ -63,6 +63,8 @@ function loadStage() {
     timerInterval = setInterval(() => {
         const now = (performance.now() - startTime) / 1000;
         document.getElementById('timer').innerText = now.toFixed(1);
+        if (now > 120) document.getElementById('timer').style.color = '#f85149';
+        else document.getElementById('timer').style.color = '#58a6ff';
     }, 100);
 
     drawPrompt();
@@ -70,8 +72,7 @@ function loadStage() {
 }
 
 function skipStage() {
-    if (confirm("Skip this incident? (High Rank will be disabled)")) {
-        hasSkipped = true;
+    if (confirm("Skip this incident? (Score will not be added)")) {
         clearInterval(timerInterval);
         nextStage();
     }
@@ -84,14 +85,14 @@ function drawPrompt() {
 
 term.onData(data => {
     switch (data) {
-        case '\r': // Enter
+        case '\r': 
             term.write('\r\n');
             const finalCmd = cmd.trim();
             if (finalCmd) { history.push(finalCmd); historyIdx = history.length; }
             processCmd(finalCmd);
             if (document.getElementById('solution-article').style.display !== 'block') drawPrompt();
             break;
-        case '\u007F': // Backspace
+        case '\u007F': 
             if (cursorIdx > 0) {
                 cmd = cmd.slice(0, cursorIdx - 1) + cmd.slice(cursorIdx);
                 cursorIdx--;
@@ -123,13 +124,14 @@ function processCmd(input) {
     const s = stagesData[currentLvl];
     if (input === s.solution || input === "sudo " + s.solution) {
         clearInterval(timerInterval);
-        const endTime = performance.now();
-        const timeTaken = (endTime - startTime) / 1000;
-        let timeBonus = Math.max(0, Math.floor(100 - (timeTaken * 2)));
-        let stageScore = 100 + timeBonus;
+        const timeTaken = (performance.now() - startTime) / 1000;
+        
+        let timeBonus = (timeTaken <= 120) ? 100 : 0;
+        let stageScore = currentStageBaseScore + timeBonus;
         score += stageScore;
+        
         document.getElementById('score').innerText = score;
-        term.writeln(`\x1b[1;32m[OK] Resolved in ${timeTaken.toFixed(2)}s! (+${stageScore} pts)\x1b[0m`);
+        term.writeln(`\r\n\x1b[1;32m[OK] Resolved! Base:${currentStageBaseScore} + Bonus:${timeBonus} = ${stageScore} pts\x1b[0m`);
         showClear(s);
         return;
     }
@@ -145,7 +147,7 @@ function processCmd(input) {
             case "hint": showHint(false); break;
             case "clear": term.clear(); break;
             case "help": term.write("Commands: " + supported.join(", ")); break;
-            case "ps": term.write("PID TTY TIME CMD\r\n 562 pts/0 00:00:05 " + (s.title.includes('Process') ? 'rogue_proc' : 'systemd')); break;
+            case "ps": term.write("PID TTY TIME CMD\r\n 562 pts/0 00:00:05 systemd"); break;
             default: term.write(`Executed '${base}', but issue remains.`); break;
         }
     } else { term.write(`sh: ${base}: command not found`); }
@@ -153,7 +155,10 @@ function processCmd(input) {
 
 function showHint(isAuto = false) {
     const s = stagesData[currentLvl];
-    if (!isAuto) hintCount++;
+    if (currentStageBaseScore === 100) {
+        currentStageBaseScore = 50;
+        term.write(`\r\n\x1b[1;31m[PENALTY] Base score reduced to 50.\x1b[0m`);
+    }
     document.getElementById('hint-text').innerText = s.hint;
     document.getElementById('hint-area').classList.remove('hidden');
     term.write(`\r\n\x1b[1;36m[INTEL] Hint revealed.\x1b[0m`);
@@ -174,15 +179,14 @@ function showResult() {
     const screen = document.getElementById('result-screen');
     const msg = document.getElementById('rank-msg');
     screen.style.display = 'flex';
-    let rank = "Junior Ops";
-    if (currentLvl < stagesData.length || hasSkipped) {
-        rank = (score > 800) ? "Senior Technician" : "Field Engineer";
-    } else {
-        if (hintCount === 0 && score > 1600) rank = "God of SRE";
-        else if (hintCount === 0) rank = "Legendary SRE";
-        else if (hintCount < 4) rank = "Senior Engineer";
-        else rank = "SysAdmin";
-    }
+    
+    let rank = "";
+    if (score >= 1800) rank = "God of SRE";
+    else if (score >= 1500) rank = "Legendary SRE";
+    else if (score >= 1100) rank = "Senior Engineer";
+    else if (score >= 700) rank = "SysAdmin";
+    else rank = "Junior Ops";
+
     msg.innerText = rank;
     document.getElementById('final-score').innerText = score;
     localStorage.clear();
@@ -191,6 +195,6 @@ function showResult() {
 function shareX() {
     const rank = document.getElementById('rank-msg').innerText;
     const scoreVal = document.getElementById('final-score').innerText;
-    const text = encodeURIComponent(`I am ranked as [${rank}] in IncidentRoot!\nScore: ${scoreVal}\n\nCan you solve 10 critical Linux incidents?\n#IncidentRoot #Linux`);
+    const text = encodeURIComponent(`I am ranked as [${rank}] in IncidentRoot!\nScore: ${scoreVal}\n\nSolve 10 server incidents within 2min for a bonus!\n#IncidentRoot #Linux`);
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=https://incident.f5.si`);
 }
