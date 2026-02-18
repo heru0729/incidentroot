@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IncidentRoot | Linux Lab</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="start-screen" class="overlay">
+    <h1>IncidentRoot</h1>
+    <p>Troubleshoot like a Pro.</p>
+    <button class="btn-main" onclick="startGame()">INITIALIZE SESSION</button>
+</div>
+
+<div id="result-screen" class="overlay" style="display:none;">
+    <h1>MISSION COMPLETE</h1>
+    <p>Final Score: <span id="final-score">0</span></p>
+    <div class="rank-text" id="rank-msg">RANKING...</div>
+    <div>
+        <button class="btn-main btn-share" onclick="shareX()">SHARE ON X</button>
+        <button class="btn-main" onclick="location.reload()">REBOOT SYSTEM</button>
+    </div>
+</div>
+
+<header>
+    <div style="font-weight:bold; color:var(--accent);">IncidentRoot</div>
+    <div style="font-size:0.9rem;">Lv: <span id="lvl-idx">1</span> | Score: <span id="score">0</span></div>
+</header>
+
+<div id="app-body">
+    <div id="terminal-box"></div>
+    <aside id="sidebar">
+        <h2 id="stg-title" style="font-size:1.1rem; margin-top:0;"></h2>
+        <p id="stg-desc" style="font-size:0.85rem; color:#8b949e;"></p>
+        <div id="hint-area" class="hidden">
+            <p style="color:var(--accent); font-weight:bold; margin:0; font-size:0.8rem;">HINT</p>
+            <p id="hint-text" style="font-size:0.85rem; background:#161b22; padding:10px; border-radius:4px; border:1px solid var(--border);"></p>
+        </div>
+    </aside>
+</div>
+
+<div id="solution-article">
+    <div class="article-inner">
+        <h2 style="color:var(--success); margin-top:0;">✔ RESOLVED</h2>
+        <div id="article-content" style="line-height:1.6;"></div>
+        <button class="btn-next" onclick="nextStage()">NEXT CASE</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="data/stages.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
