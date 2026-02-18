@@ -2,10 +2,9 @@ let currentLvl = 0;
 let cmd = "";
 let cursorIdx = 0; 
 let score = 0;
-let totalSeconds = 0; // 合計時間用
+let totalSeconds = 0; 
 let history = [];
 let historyIdx = -1;
-let hintCount = 0;
 let missCount = 0;
 let startTime = 0;
 let timerInterval = null;
@@ -75,7 +74,7 @@ function loadStage() {
 }
 
 function skipStage() {
-    if (confirm("Skip this incident? (No score added)")) {
+    if (confirm("Skip this incident? (0 score for this level)")) {
         clearInterval(timerInterval);
         nextStage();
     }
@@ -128,7 +127,7 @@ function processCmd(input) {
     if (input === s.solution || input === "sudo " + s.solution) {
         clearInterval(timerInterval);
         const timeTaken = (performance.now() - startTime) / 1000;
-        totalSeconds += timeTaken; // 合計時間に加算
+        totalSeconds += timeTaken;
         
         let timeBonus = (timeTaken <= 120) ? 100 : 0;
         let stageScore = currentStageBaseScore + timeBonus;
@@ -202,7 +201,16 @@ function showResult() {
 
 function shareX() {
     const rank = document.getElementById('rank-msg').innerText;
-    const scoreVal = document.getElementById('final-score').innerText;
-    const text = encodeURIComponent(`I am ranked as [${rank}] in IncidentRoot!\nScore/Time: ${scoreVal}\n\nSolve 10 server incidents! #IncidentRoot #Linux`);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=https://incident.f5.si`);
+    const scoreTime = document.getElementById('final-score').innerText;
+    
+    const text = encodeURIComponent(
+        `[IncidentRoot: MISSION COMPLETE]\n` +
+        `RANK: ${rank}\n` +
+        `SCORE/TIME: ${scoreTime}\n\n` +
+        `Can you resolve all server incidents within the 2-minute bonus window?\n` +
+        `#IncidentRoot #Linux #SRE #AtCoder #RTA`
+    );
+    
+    const url = `https://incident.f5.si`;
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`);
 }
