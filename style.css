@@ -38,7 +38,7 @@ header {
 #app-body { display: flex; flex: 1; overflow: hidden; }
 
 #terminal-box { 
-    flex: 1; background: #000; padding: 5px; 
+    flex: 1; background: #000; padding: 10px; 
     overflow: hidden; display: block;
 }
 
@@ -57,7 +57,7 @@ header {
 #solution-article { 
     position: fixed; bottom: 0; left: 0; width: 100%;
     background: #161b22; border-top: 4px solid var(--success); 
-    padding: 20px; z-index: 100; max-height: 40vh; overflow-y: auto;
+    padding: 20px; z-index: 100; max-height: 45vh; overflow-y: auto;
     display: none;
 }
 .article-inner { max-width: 800px; margin: 0 auto; }
@@ -65,10 +65,11 @@ header {
 
 .hidden { display: none; }
 
-/* Mobile View */
+#timer { font-family: monospace; font-weight: bold; width: 45px; display: inline-block; text-align: right; }
+
 @media screen and (max-width: 768px) {
     #app-body { flex-direction: column; overflow-y: auto; }
-    #terminal-box { height: 50vh; flex: none; }
+    #terminal-box { height: 45vh; flex: none; }
     #sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: none; }
     #start-screen h1 { font-size: 2.2rem; }
 }
