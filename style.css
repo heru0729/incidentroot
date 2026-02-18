@@ -1,16 +1,15 @@
 :root {
     --bg: #0d1117; --header: #161b22; --accent: #58a6ff;
     --success: #3fb950; --border: #30363d; --text: #c9d1d9;
-    --gold: #d4af37;
+    --gold: #d4af37; --danger: #f85149;
 }
 
 body {
     margin: 0; background: var(--bg); color: var(--text);
     font-family: -apple-system, sans-serif;
-    display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto;
+    display: flex; flex-direction: column; min-height: 100vh;
 }
 
-/* スタート・リザルト共通 */
 .overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: radial-gradient(circle, #1c2128 0%, #0d1117 100%);
@@ -23,46 +22,35 @@ body {
     letter-spacing: 2px; text-shadow: 0 0 15px rgba(88, 166, 255, 0.5);
 }
 
-.rank-text { font-size: 2rem; color: var(--gold); font-weight: bold; margin: 20px 0; }
-
 .btn-main {
     background: var(--accent); color: white; border: none;
     padding: 15px 40px; border-radius: 8px; font-size: 1.2rem;
-    font-weight: bold; cursor: pointer; transition: transform 0.2s;
-    margin: 10px;
+    font-weight: bold; cursor: pointer; transition: transform 0.2s; margin: 10px;
 }
 
 .btn-main:hover { transform: scale(1.05); filter: brightness(1.2); }
 
-.btn-share { background: #1da1f2; } /* X (Twitter) Color */
+/* サイドバーのスキップボタン */
+.btn-skip {
+    background: transparent; color: var(--danger); border: 1px solid var(--danger);
+    width: 100%; padding: 10px; border-radius: 4px; cursor: pointer; margin-top: 20px;
+    font-size: 0.8rem; opacity: 0.6;
+}
+.btn-skip:hover { opacity: 1; background: rgba(248, 81, 73, 0.1); }
 
-/* メインレイアウト */
 header {
     background: var(--header); padding: 12px 20px;
     display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid var(--border);
 }
 
 #app-body { display: flex; height: 75vh; }
-#terminal-box { flex: 1; background: #000; cursor: text; overflow: hidden; }
+#terminal-box { flex: 1; background: #000; overflow: hidden; }
 
-#sidebar {
-    width: 320px; background: var(--bg); border-left: 1px solid var(--border);
-    padding: 20px; overflow-y: auto;
-}
+#sidebar { width: 320px; border-left: 1px solid var(--border); padding: 20px; overflow-y: auto; }
 
-#solution-article {
-    display: none; background: #161b22; border-top: 4px solid var(--success);
-    padding: 40px 20px;
-}
-
+#solution-article { display: none; background: #161b22; border-top: 4px solid var(--success); padding: 40px 20px; }
 .article-inner { max-width: 800px; margin: 0 auto; }
 
-.btn-next {
-    background: var(--success); color: white; border: none;
-    padding: 15px 30px; border-radius: 6px; cursor: pointer;
-    font-size: 1rem; font-weight: bold; margin-top: 20px;
-}
-
+.btn-next { background: var(--success); color: white; border: none; padding: 15px 30px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; }
 .hidden { display: none; }
-.xterm-viewport { padding: 10px; }
