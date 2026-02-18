@@ -1,65 +1,53 @@
 /**
- * IncidentRoot - Logic Engine
- * Features: Terminal Emulation, History, Hint, Result Tracking, Clipboard Support
+ * IncidentRoot - Main Logic Engine
+ * Domain: incident.f5.si
  */
 
 let currentLvl = 0;
 let cmd = "";
+let cursorIdx = 0; // Current cursor position within the cmd string
 let score = 0;
 let history = [];
 let historyIdx = -1;
 let hintCount = 0;
 
-// 1. Terminal Instance Initializing
+// Initialize Terminal
 const term = new Terminal({
     cursorBlink: true,
     fontSize: 16,
-    fontFamily: '"JetBrains Mono", "Courier New", monospace',
+    fontFamily: '"JetBrains Mono", monospace',
     theme: { 
         background: '#000000', 
         foreground: '#ffffff',
-        cursor: '#58a6ff',
-        selectionBackground: 'rgba(88, 166, 255, 0.3)'
+        cursor: '#58a6ff' 
     }
 });
 
-// 2. Lifecycle Handlers
 window.onload = function() {
     const container = document.getElementById('terminal-box');
     if (!container) return;
-
     term.open(container);
-    
-    // Auto-focus on terminal when clicking the box
     container.addEventListener('click', () => term.focus());
 
-    // --- Clipboard Support ---
-    // Handle Browser-level Paste Event
+    // Clipboard Support
     window.addEventListener('paste', (e) => {
         if (document.activeElement.closest('#terminal-box')) {
             const text = e.clipboardData.getData('text');
-            handleInputString(text);
+            insertText(text);
         }
     });
 
-    // Check if stagesData is loaded from data/stages.js
-    if (typeof stagesData === 'undefined') {
-        term.writeln("\x1b[1;31mError: stagesData not found. Make sure data/stages.js is loaded.\x1b[0m");
-    }
+    if (typeof stagesData !== 'undefined') loadStage();
 };
 
-// Start Button logic
 function startGame() {
-    const startScreen = document.getElementById('start-screen');
-    startScreen.style.opacity = '0';
+    document.getElementById('start-screen').style.opacity = '0';
     setTimeout(() => {
-        startScreen.style.display = 'none';
-        loadStage();
+        document.getElementById('start-screen').style.display = 'none';
         term.focus();
     }, 500);
 }
 
-// 3. Stage Controller
 function loadStage() {
     const s = stagesData[currentLvl];
     document.getElementById('lvl-idx').innerText = currentLvl + 1;
@@ -76,129 +64,150 @@ function loadStage() {
 
 function drawPrompt() {
     term.write(`\r\n\x1b[1;32mroot@incident-root\x1b[0m:# `);
+    cmd = "";
+    cursorIdx = 0;
 }
 
-// 4. Input Handlers
+// Input Handling with Arrow Key support
 term.onData(data => {
     switch (data) {
         case '\r': // Enter
-            const input = cmd.trim();
-            if (input) {
-                history.push(input);
+            term.write('\r\n');
+            const finalCmd = cmd.trim();
+            if (finalCmd) {
+                history.push(finalCmd);
                 historyIdx = history.length;
             }
-            processCmd(input);
-            cmd = "";
-            if (document.getElementById('solution-article').style.display !== 'block') {
-                drawPrompt();
-            }
+            processCmd(finalCmd);
+            if (document.getElementById('solution-article').style.display !== 'block') drawPrompt();
             break;
 
         case '\u007F': // Backspace
-            if (cmd.length > 0) {
-                cmd = cmd.slice(0, -1);
-                term.write('\b \b');
+            if (cursorIdx > 0) {
+                // Remove character at cursorIdx - 1
+                cmd = cmd.slice(0, cursorIdx - 1) + cmd.slice(cursorIdx);
+                cursorIdx--;
+                term.write('\b\x1b[P'); // Move back and delete character
             }
             break;
 
         case '\u001b[A': // Up Arrow (History)
             if (historyIdx > 0) {
                 historyIdx--;
-                replaceCurrentLine(history[historyIdx]);
+                replaceLine(history[historyIdx]);
             }
             break;
 
         case '\u001b[B': // Down Arrow (History)
             if (historyIdx < history.length - 1) {
                 historyIdx++;
-                replaceCurrentLine(history[historyIdx]);
+                replaceLine(history[historyIdx]);
             } else {
                 historyIdx = history.length;
-                replaceCurrentLine("");
+                replaceLine("");
+            }
+            break;
+
+        case '\u001b[D': // Left Arrow
+            if (cursorIdx > 0) {
+                cursorIdx--;
+                term.write(data);
+            }
+            break;
+
+        case '\u001b[C': // Right Arrow
+            if (cursorIdx < cmd.length) {
+                cursorIdx++;
+                term.write(data);
             }
             break;
 
         default: // Normal Character Input
-            // Ignore control characters like Esc
             if (data.charCodeAt(0) >= 32) {
-                handleInputString(data);
+                insertText(data);
             }
     }
 });
 
-// Helper for single char or pasted string
-function handleInputString(str) {
-    cmd += str;
-    term.write(str);
+/**
+ * Inserts text at the current cursor position and updates display
+ */
+function insertText(text) {
+    const tail = cmd.slice(cursorIdx);
+    cmd = cmd.slice(0, cursorIdx) + text + tail;
+    
+    term.write('\x1b[s'); // Save cursor position
+    term.write(text + tail); // Write new text and remaining tail
+    term.write('\x1b[u'); // Restore cursor position
+    
+    // Move cursor forward by text length
+    for (let i = 0; i < text.length; i++) {
+        term.write('\x1b[C');
+        cursorIdx++;
+    }
 }
 
-// Helper to replace line for History (Up/Down)
-function replaceCurrentLine(newCmd) {
-    for (let i = 0; i < cmd.length; i++) {
-        term.write('\b \b');
+/**
+ * Replaces the entire current line (used for history)
+ */
+function replaceLine(newCmd) {
+    // Clear line from current cursor to start
+    while (cursorIdx > 0) {
+        term.write('\b\x1b[P');
+        cursorIdx--;
     }
+    // Ensure rest of line is clear
+    term.write('\x1b[K'); 
     cmd = newCmd;
     term.write(cmd);
+    cursorIdx = cmd.length;
 }
 
-// 5. Command Logic
 function processCmd(input) {
-    term.write("\r\n");
     const s = stagesData[currentLvl];
-
-    // Check Solution (Support both direct and sudo)
+    
+    // Exact match or sudo match
     if (input === s.solution || input === "sudo " + s.solution) {
         score += 100;
         document.getElementById('score').innerText = score;
-        term.writeln("\x1b[1;32m[OK] Resolution Confirmed.\x1b[0m");
+        term.writeln("\x1b[1;32m[OK] System Status: STABLE\x1b[0m");
         showClear(s);
         return;
     }
 
     const args = input.split(" ");
-    const baseCmd = args[0];
-
-    switch (baseCmd) {
+    switch (args[0]) {
         case "ls":
-            if (s.fs) term.write(Object.keys(s.fs).join("  "));
+            term.write(Object.keys(s.fs).join("  "));
             break;
         case "cat":
-            const file = args[1];
-            if (s.fs && s.fs[file]) {
-                term.write(s.fs[file]);
-            } else {
-                term.write(`cat: ${file || ""}: No such file or directory`);
-            }
+            term.write(s.fs[args[1]] || `cat: ${args[1] || ""}: No such file`);
             break;
         case "hint":
             hintCount++;
             document.getElementById('hint-text').innerText = s.hint;
             document.getElementById('hint-area').classList.remove('hidden');
-            term.write("\x1b[1;36mHint revealed in sidebar.\x1b[0m");
-            break;
-        case "help":
-            term.write("Available commands: ls, cat [file], hint, clear");
+            term.write("\x1b[1;36m[SYSTEM] Hint provided in the intelligence panel.\x1b[0m");
             break;
         case "clear":
             term.clear();
             break;
+        case "help":
+            term.write("Available: ls, cat [file], hint, clear");
+            break;
         case "":
             break;
         default:
-            term.write(`sh: ${baseCmd}: command not found`);
+            term.write(`sh: ${args[0]}: command not found`);
     }
 }
 
-// 6. UI & Navigation
 function showClear(s) {
-    const article = document.getElementById('solution-article');
     document.getElementById('article-content').innerHTML = s.article;
-    article.style.display = 'block';
-    
-    // Auto scroll to article
-    setTimeout(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }, 100);
+    document.getElementById('solution-article').style.display = 'block';
+    setTimeout(() => { 
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); 
+    }, 150);
 }
 
 function nextStage() {
@@ -215,19 +224,25 @@ function showResult() {
     const msg = document.getElementById('rank-msg');
     screen.style.display = 'flex';
     
-    // Rank Logic
     let rank = "Junior Ops";
     if (hintCount === 0) rank = "Legendary SRE";
     else if (hintCount < 3) rank = "Senior Engineer";
-    else if (hintCount < 6) rank = "System Administrator";
+    else if (hintCount < 6) rank = "SysAdmin";
 
     msg.innerText = rank;
     document.getElementById('final-score').innerText = score;
 }
 
+// Twitter (X) Share function in English
 function shareX() {
     const rank = document.getElementById('rank-msg').innerText;
-    const text = encodeURIComponent(`IncidentRootをクリアしました！\nランク: ${rank}\nスコア: ${score}\n#IncidentRoot #Linux #エンジニアゲーム`);
-    const url = encodeURIComponent(window.location.href);
+    const scoreVal = document.getElementById('final-score').innerText;
+    const text = encodeURIComponent(
+        `I just cleared IncidentRoot!\n` +
+        `Rank: ${rank}\n` +
+        `Final Score: ${scoreVal}\n\n` +
+        `Can you resolve all 10 Linux incidents?\n`
+    );
+    const url = encodeURIComponent("http://incident.f5.si");
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`);
 }
