@@ -1,8 +1,3 @@
-/**
- * IncidentRoot - Logic Engine
- * Domain: incident.f5.si
- */
-
 let currentLvl = 0;
 let cmd = "";
 let cursorIdx = 0; 
@@ -12,9 +7,7 @@ let historyIdx = -1;
 let hintCount = 0;
 
 const term = new Terminal({
-    cursorBlink: true,
-    fontSize: 16,
-    fontFamily: '"JetBrains Mono", monospace',
+    cursorBlink: true, fontSize: 16, fontFamily: '"JetBrains Mono", monospace',
     theme: { background: '#000000', foreground: '#ffffff', cursor: '#58a6ff' }
 });
 
@@ -24,6 +17,7 @@ window.onload = function() {
     term.open(container);
     container.addEventListener('click', () => term.focus());
 
+    // 貼り付けイベント
     window.addEventListener('paste', (e) => {
         if (document.activeElement.closest('#terminal-box')) {
             const text = e.clipboardData.getData('text');
@@ -31,13 +25,27 @@ window.onload = function() {
         }
     });
 
-    if (typeof stagesData !== 'undefined') loadStage();
+    // 保存された進捗があるか確認
+    const savedLvl = localStorage.getItem('incident_root_lvl');
+    if (savedLvl && savedLvl > 0) {
+        document.getElementById('resume-btn').classList.remove('hidden');
+    }
 };
 
-function startGame() {
+// ゲーム開始（最初から）
+function startGame(isResume = false) {
+    if (isResume) {
+        currentLvl = parseInt(localStorage.getItem('incident_root_lvl')) || 0;
+        score = parseInt(localStorage.getItem('incident_root_score')) || 0;
+        document.getElementById('score').innerText = score;
+    } else {
+        localStorage.clear(); // 新しく始める場合はリセット
+    }
+
     document.getElementById('start-screen').style.opacity = '0';
     setTimeout(() => {
         document.getElementById('start-screen').style.display = 'none';
+        loadStage();
         term.focus();
     }, 500);
 }
@@ -50,16 +58,26 @@ function loadStage() {
     document.getElementById('solution-article').style.display = 'none';
     document.getElementById('hint-area').classList.add('hidden');
     
+    // 現在のレベルを保存
+    localStorage.setItem('incident_root_lvl', currentLvl);
+    localStorage.setItem('incident_root_score', score);
+
     term.clear();
     term.writeln(`\x1b[1;33m--- LEVEL ${currentLvl + 1}: ${s.title} ---\x1b[0m`);
     term.writeln(`Mission: ${s.desc}`);
     drawPrompt();
 }
 
+// --- スキップ機能 ---
+function skipStage() {
+    if (confirm("Skip this incident? (No score will be added)")) {
+        nextStage();
+    }
+}
+
 function drawPrompt() {
     term.write(`\r\n\x1b[1;32mroot@incident-root\x1b[0m:# `);
-    cmd = "";
-    cursorIdx = 0;
+    cmd = ""; cursorIdx = 0;
 }
 
 term.onData(data => {
@@ -78,21 +96,11 @@ term.onData(data => {
                 term.write('\b\x1b[P');
             }
             break;
-        case '\u001b[A': 
-            if (historyIdx > 0) { historyIdx--; replaceLine(history[historyIdx]); }
-            break;
-        case '\u001b[B': 
-            if (historyIdx < history.length - 1) { historyIdx++; replaceLine(history[historyIdx]); }
-            else { historyIdx = history.length; replaceLine(""); }
-            break;
-        case '\u001b[D': 
-            if (cursorIdx > 0) { cursorIdx--; term.write(data); }
-            break;
-        case '\u001b[C': 
-            if (cursorIdx < cmd.length) { cursorIdx++; term.write(data); }
-            break;
-        default:
-            if (data.charCodeAt(0) >= 32) { insertText(data); }
+        case '\u001b[A': if (historyIdx > 0) { historyIdx--; replaceLine(history[historyIdx]); } break;
+        case '\u001b[B': if (historyIdx < history.length - 1) { historyIdx++; replaceLine(history[historyIdx]); } else { historyIdx = history.length; replaceLine(""); } break;
+        case '\u001b[D': if (cursorIdx > 0) { cursorIdx--; term.write(data); } break;
+        case '\u001b[C': if (cursorIdx < cmd.length) { cursorIdx++; term.write(data); } break;
+        default: if (data.charCodeAt(0) >= 32) insertText(data);
     }
 });
 
@@ -105,65 +113,32 @@ function insertText(text) {
 
 function replaceLine(newCmd) {
     while (cursorIdx > 0) { term.write('\b\x1b[P'); cursorIdx--; }
-    term.write('\x1b[K'); 
-    cmd = newCmd;
-    term.write(cmd);
-    cursorIdx = cmd.length;
+    term.write('\x1b[K'); cmd = newCmd; term.write(cmd); cursorIdx = cmd.length;
 }
 
-// 判定ロジック
 function processCmd(input) {
     const s = stagesData[currentLvl];
-    
-    // 正解判定 (完全一致 or sudo付き)
     if (input === s.solution || input === "sudo " + s.solution) {
         score += 100;
         document.getElementById('score').innerText = score;
-        term.writeln("\x1b[1;32m[OK] Task completed successfully.\x1b[0m");
+        term.writeln("\x1b[1;32m[OK] Task completed.\x1b[0m");
         showClear(s);
         return;
     }
-
     const args = input.split(" ");
-    const base = args[0];
-
-    // 各レベルのクリアに必要なコマンドを網羅
-    switch (base) {
-        case "ls":
-            term.write(Object.keys(s.fs).join("  "));
-            break;
-        case "cat":
-            term.write(s.fs[args[1]] || `cat: ${args[1] || ""}: No such file`);
-            break;
-        case "chmod":
-        case "chown":
-        case "kill":
-        case "killall":
-        case "rm":
-        case "apt-get":
-        case "swapon":
-        case "modprobe":
-        case "echo":
-            // これらは正解（s.solution）以外で打たれた場合、
-            // 「実行はされたが解決はしていない」という体裁にする
-            term.write(`Applied ${base} but the issue persists...`);
-            break;
+    switch (args[0]) {
+        case "ls": term.write(Object.keys(s.fs).join("  ")); break;
+        case "cat": term.write(s.fs[args[1]] || `cat: ${args[1] || ""}: No such file`); break;
         case "hint":
             hintCount++;
             document.getElementById('hint-text').innerText = s.hint;
             document.getElementById('hint-area').classList.remove('hidden');
             term.write("\x1b[1;36m[INTEL] Hint revealed.\x1b[0m");
             break;
-        case "help":
-            term.write("Standard Linux commands are available (ls, cat, chmod, kill, etc.)");
-            break;
-        case "clear":
-            term.clear();
-            break;
-        case "":
-            break;
-        default:
-            term.write(`sh: ${base}: command not found`);
+        case "clear": term.clear(); break;
+        case "help": term.write("Standard Linux commands (ls, cat, chmod, etc.)"); break;
+        case "": break;
+        default: term.write(`sh: ${args[0]}: command not found`);
     }
 }
 
@@ -176,7 +151,10 @@ function showClear(s) {
 function nextStage() {
     currentLvl++;
     if (currentLvl < stagesData.length) loadStage();
-    else showResult();
+    else {
+        localStorage.clear(); // 全クリアしたら保存データを消す
+        showResult();
+    }
 }
 
 function showResult() {
@@ -186,7 +164,6 @@ function showResult() {
     let rank = "Junior Ops";
     if (hintCount === 0) rank = "Legendary SRE";
     else if (hintCount < 3) rank = "Senior Engineer";
-    else if (hintCount < 6) rank = "SysAdmin";
     msg.innerText = rank;
     document.getElementById('final-score').innerText = score;
 }
@@ -194,7 +171,6 @@ function showResult() {
 function shareX() {
     const rank = document.getElementById('rank-msg').innerText;
     const scoreVal = document.getElementById('final-score').innerText;
-    const text = encodeURIComponent(`I just cleared IncidentRoot!\nRank: ${rank}\nScore: ${scoreVal}\n\nCan you resolve all 10 Linux incidents?\n`);
-    const url = encodeURIComponent("http://incident.f5.si");
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`);
+    const text = encodeURIComponent(`I cleared IncidentRoot!\nRank: ${rank}\nScore: ${scoreVal}\n`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=http://incident.f5.si`);
 }
