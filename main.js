@@ -2,6 +2,7 @@ let currentLvl = 0;
 let cmd = "";
 let cursorIdx = 0; 
 let score = 0;
+let totalSeconds = 0; // 合計時間用
 let history = [];
 let historyIdx = -1;
 let hintCount = 0;
@@ -10,11 +11,8 @@ let startTime = 0;
 let timerInterval = null;
 let currentStageBaseScore = 100;
 
-// xterm.jsの初期化
 const term = new Terminal({
-    cursorBlink: true,
-    fontSize: 16,
-    fontFamily: '"JetBrains Mono", monospace',
+    cursorBlink: true, fontSize: 16, fontFamily: '"JetBrains Mono", monospace',
     theme: { background: '#000000', foreground: '#ffffff', cursor: '#58a6ff' }
 });
 const fitAddon = new FitAddon.FitAddon();
@@ -27,33 +25,27 @@ window.onload = function() {
     window.addEventListener('resize', () => fitAddon.fit());
     container.addEventListener('click', () => term.focus());
 
-    // 進捗の読み込み
     const savedLvl = localStorage.getItem('incident_root_lvl');
-    if (savedLvl && savedLvl > 0) {
-        document.getElementById('resume-btn').classList.remove('hidden');
-    }
+    if (savedLvl && savedLvl > 0) document.getElementById('resume-btn').classList.remove('hidden');
 };
 
 function startGame(isResume = false) {
     if (isResume) {
         currentLvl = parseInt(localStorage.getItem('incident_root_lvl')) || 0;
         score = parseInt(localStorage.getItem('incident_root_score')) || 0;
+        totalSeconds = parseFloat(localStorage.getItem('incident_root_time')) || 0;
     } else {
         localStorage.clear();
-        score = 0;
-        currentLvl = 0;
+        score = 0; currentLvl = 0; totalSeconds = 0;
     }
     document.getElementById('start-screen').style.display = 'none';
     loadStage();
 }
 
 function loadStage() {
-    if (currentLvl >= stagesData.length) {
-        showResult();
-        return;
-    }
+    if (currentLvl >= stagesData.length) { showResult(); return; }
     const s = stagesData[currentLvl];
-    currentStageBaseScore = 100; // 基礎点リセット
+    currentStageBaseScore = 100;
     
     document.getElementById('lvl-idx').innerText = currentLvl + 1;
     document.getElementById('stg-title').innerText = s.title;
@@ -61,26 +53,21 @@ function loadStage() {
     document.getElementById('solution-article').style.display = 'none';
     document.getElementById('hint-area').classList.add('hidden');
     
-    // 進捗保存
     localStorage.setItem('incident_root_lvl', currentLvl);
     localStorage.setItem('incident_root_score', score);
+    localStorage.setItem('incident_root_time', totalSeconds);
 
     term.clear();
     term.writeln(`\x1b[1;33m--- LEVEL ${currentLvl + 1}: ${s.title} ---\x1b[0m`);
     
     missCount = 0;
     startTime = performance.now();
-    
     if(timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         const now = (performance.now() - startTime) / 1000;
         document.getElementById('timer').innerText = now.toFixed(1);
-        // 2分を過ぎたら赤色にする
-        if (now > 120) {
-            document.getElementById('timer').style.color = '#f85149';
-        } else {
-            document.getElementById('timer').style.color = '#58a6ff';
-        }
+        if (now > 120) document.getElementById('timer').style.color = '#f85149';
+        else document.getElementById('timer').style.color = '#58a6ff';
     }, 100);
 
     drawPrompt();
@@ -88,7 +75,7 @@ function loadStage() {
 }
 
 function skipStage() {
-    if (confirm("Skip this incident? (Score for this stage will be 0)")) {
+    if (confirm("Skip this incident? (No score added)")) {
         clearInterval(timerInterval);
         nextStage();
     }
@@ -96,23 +83,19 @@ function skipStage() {
 
 function drawPrompt() {
     term.write(`\r\n\x1b[1;32mroot@incident-root\x1b[0m:# `);
-    cmd = "";
-    cursorIdx = 0;
+    cmd = ""; cursorIdx = 0;
 }
 
 term.onData(data => {
     switch (data) {
-        case '\r': // Enter
+        case '\r': 
             term.write('\r\n');
             const finalCmd = cmd.trim();
-            if (finalCmd) {
-                history.push(finalCmd);
-                historyIdx = history.length;
-            }
+            if (finalCmd) { history.push(finalCmd); historyIdx = history.length; }
             processCmd(finalCmd);
             if (document.getElementById('solution-article').style.display !== 'block') drawPrompt();
             break;
-        case '\u007F': // Backspace
+        case '\u007F': 
             if (cursorIdx > 0) {
                 cmd = cmd.slice(0, cursorIdx - 1) + cmd.slice(cursorIdx);
                 cursorIdx--;
@@ -131,33 +114,23 @@ function insertText(text) {
     const tail = cmd.slice(cursorIdx);
     cmd = cmd.slice(0, cursorIdx) + text + tail;
     term.write('\x1b[s' + text + tail + '\x1b[u'); 
-    for (let i = 0; i < text.length; i++) {
-        term.write('\x1b[C');
-        cursorIdx++;
-    }
+    for (let i = 0; i < text.length; i++) { term.write('\x1b[C'); cursorIdx++; }
 }
 
 function replaceLine(newCmd) {
     while (cursorIdx > 0) { term.write('\b\x1b[P'); cursorIdx--; }
-    term.write('\x1b[K');
-    cmd = newCmd;
-    term.write(cmd);
-    cursorIdx = cmd.length;
+    term.write('\x1b[K'); cmd = newCmd; term.write(cmd); cursorIdx = cmd.length;
 }
 
 function processCmd(input) {
     if (input === "") return;
     const s = stagesData[currentLvl];
-    
-    // 正解判定
     if (input === s.solution || input === "sudo " + s.solution) {
         clearInterval(timerInterval);
-        const endTime = performance.now();
-        const timeTaken = (endTime - startTime) / 1000;
+        const timeTaken = (performance.now() - startTime) / 1000;
+        totalSeconds += timeTaken; // 合計時間に加算
         
-        // 2分以内なら一律100点、それ以降は0点
         let timeBonus = (timeTaken <= 120) ? 100 : 0;
-        
         let stageScore = currentStageBaseScore + timeBonus;
         score += stageScore;
         
@@ -166,17 +139,11 @@ function processCmd(input) {
         showClear(s);
         return;
     }
-
-    // 3ミスでヒント表示
     missCount++;
-    if (missCount >= 3) {
-        showHint(true);
-    }
-
+    if (missCount >= 3) showHint(true);
     const args = input.split(" ");
     const base = args[0];
     const supported = ["ls", "cat", "chmod", "chown", "rm", "kill", "killall", "apt-get", "swapon", "modprobe", "echo", "ps", "dmesg", "help", "clear", "hint"];
-
     if (supported.includes(base)) {
         switch (base) {
             case "ls": term.write(Object.keys(s.fs).join("  ")); break;
@@ -185,25 +152,20 @@ function processCmd(input) {
             case "clear": term.clear(); break;
             case "help": term.write("Commands: " + supported.join(", ")); break;
             case "ps": term.write("PID TTY TIME CMD\r\n 562 pts/0 00:00:05 systemd"); break;
-            default: term.write(`Executed '${base}', but the issue persists.`); break;
+            default: term.write(`Executed '${base}', but issue remains.`); break;
         }
-    } else {
-        term.write(`sh: ${base}: command not found`);
-    }
+    } else { term.write(`sh: ${base}: command not found`); }
 }
 
 function showHint(isAuto = false) {
     const s = stagesData[currentLvl];
-    
-    // ヒントを見たら基礎点を50に減らす（初回のみ）
     if (currentStageBaseScore === 100) {
         currentStageBaseScore = 50;
-        term.write(`\r\n\x1b[1;31m[PENALTY] Hint used. Base score reduced to 50.\x1b[0m`);
+        term.write(`\r\n\x1b[1;31m[PENALTY] Base score reduced to 50.\x1b[0m`);
     }
-    
     document.getElementById('hint-text').innerText = s.hint;
     document.getElementById('hint-area').classList.remove('hidden');
-    term.write(`\r\n\x1b[1;36m[INTEL] Analysis complete. Check the sidebar.\x1b[0m`);
+    term.write(`\r\n\x1b[1;36m[INTEL] Hint revealed.\x1b[0m`);
 }
 
 function showClear(s) {
@@ -220,10 +182,13 @@ function showResult() {
     clearInterval(timerInterval);
     const screen = document.getElementById('result-screen');
     const msg = document.getElementById('rank-msg');
-    screen.style.display = 'flex';
     
+    const finalMinutes = Math.floor(totalSeconds / 60);
+    const finalSecs = Math.floor(totalSeconds % 60);
+    const timeStr = `${finalMinutes}m ${finalSecs}s`;
+
+    screen.style.display = 'flex';
     let rank = "";
-    // スコアのみで判定（最大2000点）
     if (score >= 1800) rank = "God of SRE";
     else if (score >= 1500) rank = "Legendary SRE";
     else if (score >= 1100) rank = "Senior Engineer";
@@ -231,13 +196,13 @@ function showResult() {
     else rank = "Junior Ops";
 
     msg.innerText = rank;
-    document.getElementById('final-score').innerText = score;
+    document.getElementById('final-score').innerText = `${score} (Total Time: ${timeStr})`;
     localStorage.clear();
 }
 
 function shareX() {
     const rank = document.getElementById('rank-msg').innerText;
     const scoreVal = document.getElementById('final-score').innerText;
-    const text = encodeURIComponent(`I am ranked as [${rank}] in IncidentRoot!\nScore: ${scoreVal}\n\nSolve 10 Linux incidents within 2min for a bonus!\n#IncidentRoot #Linux`);
+    const text = encodeURIComponent(`I am ranked as [${rank}] in IncidentRoot!\nScore/Time: ${scoreVal}\n\nSolve 10 server incidents! #IncidentRoot #Linux`);
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=https://incident.f5.si`);
 }
