@@ -1,8 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-KB4FM3E704"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-KB4FM3E704');
+    </script>
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9619368699008291"
+         crossorigin="anonymous"></script>
+
     <meta charset="UTF-8">
-    <title>IncidentRoot | Linux Lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IncidentRoot | incident.f5.si</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -10,8 +22,9 @@
 
 <div id="start-screen" class="overlay">
     <h1>IncidentRoot</h1>
-    <p>Troubleshoot like a Pro.</p>
-    <button class="btn-main" onclick="startGame()">INITIALIZE SESSION</button>
+    <p>Linux Troubleshooting Lab</p>
+    <button class="btn-main" onclick="startGame(false)">NEW SESSION</button>
+    <button id="resume-btn" class="btn-main hidden" style="background:#30363d;" onclick="startGame(true)">RESUME SESSION</button>
 </div>
 
 <div id="result-screen" class="overlay" style="display:none;">
@@ -34,10 +47,13 @@
     <aside id="sidebar">
         <h2 id="stg-title" style="font-size:1.1rem; margin-top:0;"></h2>
         <p id="stg-desc" style="font-size:0.85rem; color:#8b949e;"></p>
+        
         <div id="hint-area" class="hidden">
             <p style="color:var(--accent); font-weight:bold; margin:0; font-size:0.8rem;">HINT</p>
             <p id="hint-text" style="font-size:0.85rem; background:#161b22; padding:10px; border-radius:4px; border:1px solid var(--border);"></p>
         </div>
+
+        <button class="btn-skip" onclick="skipStage()">SKIP THIS CASE</button>
     </aside>
 </div>
 
@@ -45,7 +61,7 @@
     <div class="article-inner">
         <h2 style="color:var(--success); margin-top:0;">✔ RESOLVED</h2>
         <div id="article-content" style="line-height:1.6;"></div>
-        <button class="btn-next" onclick="nextStage()">NEXT CASE</button>
+        <button class="btn-next" onclick="nextStage()">LOAD NEXT CASE</button>
     </div>
 </div>
 
