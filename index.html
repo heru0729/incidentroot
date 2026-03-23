@@ -1,80 +1,828 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-KB4FM3E704"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-KB4FM3E704');
-    </script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9619368699008291" crossorigin="anonymous"></script>
-    
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IncidentRoot | Linux Troubleshooting & SRE Training Game</title>
-    <meta name="description" content="Master Linux terminal & server troubleshooting. Solve 10 realistic SRE incidents at incident.f5.si.">
-    
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://incident.f5.si/">
-    <meta property="og:title" content="IncidentRoot | Ultimate Linux Terminal Game">
-    <meta property="og:description" content="Can you solve 10 server incidents? Level up your SysAdmin skills.">
-    <meta property="og:image" content="https://incident.f5.si/og-image.png">
-    <meta name="twitter:card" content="summary_large_image">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IncidentRoot | Linux SRE Training</title>
+<meta name="description" content="Master Linux terminal & server troubleshooting. Solve 10 realistic SRE incidents.">
+<meta property="og:title" content="IncidentRoot | Ultimate Linux Terminal Game">
+<meta property="og:description" content="Can you solve 10 server incidents? Level up your SysAdmin skills.">
+<meta property="og:url" content="https://incident.f5.si/">
+<meta name="twitter:card" content="summary_large_image">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KB4FM3E704"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-KB4FM3E704');</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9619368699008291" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+<style>
+/* ── Reset & Variables ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#080c10;
+  --surface:#0d1117;
+  --panel:#111920;
+  --border:#1e2d3d;
+  --border2:#243447;
+  --text:#c9e0f5;
+  --dim:#5a7a9a;
+  --accent:#00d4ff;
+  --accent2:#0099cc;
+  --green:#00ff88;
+  --green2:#00cc66;
+  --red:#ff4444;
+  --yellow:#ffcc00;
+  --orange:#ff8800;
+  --font-mono:'JetBrains Mono',monospace;
+  --font-sans:'IBM Plex Sans',sans-serif;
+}
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
-    <link rel="stylesheet" href="style.css">
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:var(--font-sans);
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── Scanline overlay ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);
+  pointer-events:none;z-index:9999;
+}
+
+/* ── Grid BG ── */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;z-index:0;
+}
+
+/* ── Start Screen ── */
+#start-screen{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--bg);z-index:500;
+  gap:0;
+}
+
+.start-logo{
+  position:relative;
+  margin-bottom:8px;
+}
+.start-logo-text{
+  font-family:var(--font-mono);
+  font-size:clamp(2rem,8vw,4.5rem);
+  font-weight:800;
+  color:var(--accent);
+  letter-spacing:.05em;
+  text-shadow:0 0 40px rgba(0,212,255,.6),0 0 80px rgba(0,212,255,.2);
+  animation:pulse 3s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{text-shadow:0 0 40px rgba(0,212,255,.6),0 0 80px rgba(0,212,255,.2);}50%{text-shadow:0 0 60px rgba(0,212,255,.9),0 0 120px rgba(0,212,255,.4);}}
+
+.start-sub{
+  font-family:var(--font-mono);
+  font-size:.85rem;
+  color:var(--dim);
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  margin-bottom:48px;
+}
+
+.start-stats{
+  display:flex;gap:32px;
+  margin-bottom:48px;
+  flex-wrap:wrap;justify-content:center;
+}
+.start-stat{
+  text-align:center;
+  background:rgba(0,212,255,.05);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:16px 24px;
+  min-width:100px;
+}
+.start-stat-num{
+  font-family:var(--font-mono);
+  font-size:1.6rem;font-weight:800;
+  color:var(--accent);
+}
+.start-stat-lbl{
+  font-size:.7rem;color:var(--dim);
+  text-transform:uppercase;letter-spacing:.1em;
+  margin-top:4px;
+}
+
+.start-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+
+.btn-start{
+  font-family:var(--font-mono);
+  font-weight:700;font-size:.95rem;
+  padding:14px 36px;
+  border-radius:4px;
+  border:2px solid var(--accent);
+  background:rgba(0,212,255,.1);
+  color:var(--accent);
+  cursor:pointer;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  transition:.2s;
+  position:relative;overflow:hidden;
+}
+.btn-start::before{
+  content:'';position:absolute;inset:0;
+  background:var(--accent);
+  transform:translateX(-100%);
+  transition:.2s;z-index:-1;
+}
+.btn-start:hover{color:#000;}
+.btn-start:hover::before{transform:translateX(0);}
+.btn-start.secondary{border-color:var(--border2);background:transparent;color:var(--dim);}
+.btn-start.secondary:hover{border-color:var(--dim);color:var(--text);}
+.btn-start.secondary::before{background:var(--panel);}
+.btn-start.secondary:hover::before{transform:translateX(0);}
+.btn-start.hidden{display:none;}
+
+/* ── Header ── */
+#app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;
+  height:44px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  position:relative;z-index:10;
+}
+.hdr-brand{
+  font-family:var(--font-mono);
+  font-weight:800;font-size:.9rem;
+  color:var(--accent);
+  letter-spacing:.05em;
+}
+.hdr-status{
+  display:flex;gap:20px;align-items:center;
+  font-family:var(--font-mono);font-size:.8rem;
+}
+.hdr-stat{color:var(--dim);}
+.hdr-stat span{color:var(--text);font-weight:700;}
+#timer{font-weight:800;color:var(--accent);transition:color .3s;}
+#timer.danger{color:var(--red);animation:blink .8s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.5;}}
+.hdr-actions{display:flex;gap:8px;}
+.hdr-btn{
+  font-family:var(--font-mono);font-size:.7rem;font-weight:700;
+  padding:5px 12px;border-radius:3px;
+  border:1px solid var(--border2);
+  background:transparent;color:var(--dim);
+  cursor:pointer;letter-spacing:.05em;
+  text-transform:uppercase;transition:.15s;
+}
+.hdr-btn:hover{border-color:var(--accent);color:var(--accent);}
+.hdr-btn.danger{border-color:rgba(255,68,68,.3);color:var(--red);opacity:.6;}
+.hdr-btn.danger:hover{opacity:1;background:rgba(255,68,68,.1);}
+
+/* ── App Body ── */
+#app-body{
+  display:flex;
+  flex:1;
+  min-height:0;
+  position:relative;z-index:1;
+}
+
+/* ── Terminal ── */
+#terminal-wrap{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;
+  background:#000;
+  position:relative;
+}
+.term-topbar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;
+  background:#0a0a0a;
+  border-bottom:1px solid #1a1a1a;
+  flex-shrink:0;
+}
+.term-dot{width:12px;height:12px;border-radius:50%;}
+.term-dot.red{background:#ff5f56;}
+.term-dot.yellow{background:#ffbd2e;}
+.term-dot.green{background:#27c93f;}
+.term-title{
+  font-family:var(--font-mono);font-size:.75rem;
+  color:#555;margin:0 auto;
+}
+#terminal-box{flex:1;padding:8px;overflow:hidden;}
+
+/* ── Sidebar ── */
+#sidebar{
+  width:320px;flex-shrink:0;
+  display:flex;flex-direction:column;
+  border-left:1px solid var(--border);
+  background:var(--surface);
+  overflow:hidden;
+}
+
+.sidebar-section{
+  padding:16px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+
+/* Level badge */
+.level-badge{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:10px;
+}
+.level-num{
+  font-family:var(--font-mono);font-size:.7rem;font-weight:700;
+  background:rgba(0,212,255,.15);
+  border:1px solid rgba(0,212,255,.3);
+  color:var(--accent);
+  padding:2px 8px;border-radius:3px;
+  letter-spacing:.05em;
+}
+.level-progress{
+  flex:1;height:3px;
+  background:var(--border);border-radius:2px;
+  overflow:hidden;
+}
+.level-progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--accent),var(--green));
+  border-radius:2px;
+  transition:width .5s ease;
+}
+
+.incident-title{
+  font-family:var(--font-mono);font-weight:700;
+  font-size:.95rem;color:var(--text);
+  margin-bottom:8px;
+  line-height:1.4;
+}
+.incident-desc{
+  font-size:.82rem;color:var(--dim);
+  line-height:1.6;
+}
+
+/* Hint */
+.hint-section{
+  padding:16px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.hint-toggle{
+  font-family:var(--font-mono);font-size:.75rem;font-weight:700;
+  color:var(--yellow);letter-spacing:.05em;
+  background:transparent;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  padding:0;text-transform:uppercase;
+}
+.hint-toggle::before{content:'▶';font-size:.6rem;transition:transform .2s;}
+.hint-toggle.open::before{transform:rotate(90deg);}
+.hint-body{
+  display:none;
+  margin-top:10px;
+  font-family:var(--font-mono);font-size:.8rem;
+  color:var(--text);
+  background:rgba(255,204,0,.05);
+  border:1px solid rgba(255,204,0,.2);
+  border-radius:4px;
+  padding:10px 12px;
+  line-height:1.6;
+}
+.hint-body.open{display:block;}
+.hint-penalty{
+  font-size:.7rem;color:var(--red);
+  margin-top:6px;opacity:.7;
+}
+
+/* Commands reference */
+.cmds-section{
+  padding:16px;
+  flex:1;overflow-y:auto;
+}
+.cmds-title{
+  font-family:var(--font-mono);font-size:.7rem;font-weight:700;
+  color:var(--dim);text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:10px;
+}
+.cmd-list{display:flex;flex-wrap:wrap;gap:4px;}
+.cmd-tag{
+  font-family:var(--font-mono);font-size:.7rem;
+  background:var(--panel);
+  border:1px solid var(--border);
+  color:var(--dim);
+  padding:2px 7px;border-radius:3px;
+}
+
+/* ── Solution panel ── */
+#solution-panel{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);
+  border-top:2px solid var(--green);
+  z-index:200;
+  max-height:50vh;
+  overflow-y:auto;
+}
+.solution-inner{
+  max-width:900px;margin:0 auto;
+  padding:20px 24px;
+  display:flex;gap:24px;align-items:flex-start;
+  flex-wrap:wrap;
+}
+.solution-badge{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--font-mono);font-weight:800;
+  font-size:1rem;color:var(--green);
+  flex-shrink:0;
+  align-self:flex-start;
+  margin-top:2px;
+}
+.solution-badge::before{content:'✓';font-size:1.2rem;}
+.solution-content{
+  flex:1;min-width:200px;
+  font-size:.82rem;line-height:1.7;
+  color:var(--dim);
+}
+.solution-content h3{
+  font-family:var(--font-mono);font-weight:700;
+  font-size:.85rem;color:var(--text);
+  margin-bottom:6px;
+}
+.solution-content p{margin-bottom:8px;}
+.btn-next{
+  font-family:var(--font-mono);font-weight:700;font-size:.85rem;
+  padding:10px 24px;border-radius:4px;
+  background:var(--green);color:#000;
+  border:none;cursor:pointer;
+  letter-spacing:.05em;text-transform:uppercase;
+  flex-shrink:0;align-self:flex-start;
+  transition:.15s;
+}
+.btn-next:hover{background:var(--green2);}
+
+/* ── Result Screen ── */
+#result-screen{
+  position:fixed;inset:0;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--bg);z-index:600;
+  gap:0;
+}
+.result-label{
+  font-family:var(--font-mono);font-size:.75rem;font-weight:700;
+  color:var(--dim);letter-spacing:.2em;text-transform:uppercase;
+  margin-bottom:12px;
+}
+.result-rank{
+  font-family:var(--font-mono);font-weight:800;
+  font-size:clamp(1.8rem,6vw,3.5rem);
+  color:var(--green);
+  text-shadow:0 0 40px rgba(0,255,136,.4);
+  margin-bottom:8px;
+  text-align:center;
+}
+.result-score{
+  font-family:var(--font-mono);font-size:1rem;
+  color:var(--dim);margin-bottom:40px;
+}
+.result-score span{color:var(--accent);font-weight:700;}
+
+.result-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:12px;margin-bottom:40px;
+  width:min(500px,90vw);
+}
+.result-cell{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:6px;padding:16px;text-align:center;
+}
+.result-cell-num{
+  font-family:var(--font-mono);font-size:1.5rem;font-weight:800;
+  color:var(--accent);
+}
+.result-cell-lbl{
+  font-size:.7rem;color:var(--dim);
+  text-transform:uppercase;letter-spacing:.08em;
+  margin-top:4px;
+}
+
+.result-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.btn-result{
+  font-family:var(--font-mono);font-weight:700;font-size:.85rem;
+  padding:12px 28px;border-radius:4px;
+  border:2px solid var(--border2);
+  background:transparent;color:var(--dim);
+  cursor:pointer;letter-spacing:.06em;text-transform:uppercase;
+  transition:.2s;
+}
+.btn-result:hover{border-color:var(--text);color:var(--text);}
+.btn-result.primary{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.08);}
+.btn-result.primary:hover{background:rgba(0,212,255,.2);}
+
+/* ── Mobile ── */
+@media(max-width:768px){
+  html,body{overflow:hidden;}
+  body{overscroll-behavior-y:contain;}
+  #app-body{flex-direction:column;overflow:hidden;}
+  #terminal-wrap{
+    flex:1;min-height:0;
+  }
+  #sidebar{
+    width:100%;height:auto;flex-shrink:0;
+    border-left:none;border-top:1px solid var(--border);
+    max-height:38vh;overflow-y:auto;
+  }
+  #solution-panel{max-height:60vh;}
+  .solution-inner{padding:14px 16px;gap:14px;}
+  .hdr-status{gap:10px;}
+  .hdr-stat:not(:last-child){display:none;}
+  .result-grid{grid-template-columns:repeat(3,1fr);}
+  .start-stats{gap:16px;}
+}
+</style>
 </head>
 <body>
 
-<div id="start-screen" class="overlay">
-    <h1>IncidentRoot</h1>
-    <p>Linux Troubleshooting Lab</p>
-    <button class="btn-main" onclick="startGame(false)">NEW SESSION</button>
-    <button id="resume-btn" class="btn-main hidden" style="background:#30363d;" onclick="startGame(true)">RESUME SESSION</button>
+<!-- Start Screen -->
+<div id="start-screen">
+  <div class="start-logo">
+    <div class="start-logo-text">IncidentRoot</div>
+  </div>
+  <div class="start-sub">Linux SRE Training Lab</div>
+  <div class="start-stats">
+    <div class="start-stat">
+      <div class="start-stat-num">10</div>
+      <div class="start-stat-lbl">Incidents</div>
+    </div>
+    <div class="start-stat">
+      <div class="start-stat-num">2min</div>
+      <div class="start-stat-lbl">Bonus window</div>
+    </div>
+    <div class="start-stat">
+      <div class="start-stat-num">SRE</div>
+      <div class="start-stat-lbl">Max rank</div>
+    </div>
+  </div>
+  <div class="start-btns">
+    <button class="btn-start" onclick="startGame(false)">▶ New Session</button>
+    <button class="btn-start secondary hidden" id="resume-btn" onclick="startGame(true)">↩ Resume</button>
+  </div>
 </div>
 
-<div id="result-screen" class="overlay" style="display:none;">
-    <h1>MISSION COMPLETE</h1>
-    <p>Final Score: <span id="final-score">0</span></p>
-    <div class="rank-text" id="rank-msg">RANKING...</div>
-    <div>
-        <button class="btn-main btn-share" onclick="shareX()">SHARE ON X</button>
-        <button class="btn-main" onclick="location.reload()">REBOOT SYSTEM</button>
+<!-- Result Screen -->
+<div id="result-screen">
+  <div class="result-label">Mission Complete</div>
+  <div class="result-rank" id="rank-msg"></div>
+  <div class="result-score">Score: <span id="final-score">0</span></div>
+  <div class="result-grid">
+    <div class="result-cell">
+      <div class="result-cell-num" id="res-score">0</div>
+      <div class="result-cell-lbl">Points</div>
     </div>
+    <div class="result-cell">
+      <div class="result-cell-num" id="res-time">0m0s</div>
+      <div class="result-cell-lbl">Total Time</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-cell-num">10</div>
+      <div class="result-cell-lbl">Solved</div>
+    </div>
+  </div>
+  <div class="result-btns">
+    <button class="btn-result primary" onclick="shareX()">Share on X</button>
+    <button class="btn-result" onclick="location.reload()">Reboot</button>
+  </div>
 </div>
 
-<header>
-    <div style="font-weight:bold; color:var(--accent);">IncidentRoot</div>
-    <div style="font-size:0.9rem;">
-        Lv: <span id="lvl-idx">1</span> | Score: <span id="score">0</span> | Time: <span id="timer">0.0</span>s
-    </div>
+<!-- Header -->
+<header id="app-header" style="display:none;">
+  <div class="hdr-brand">IncidentRoot</div>
+  <div class="hdr-status">
+    <div class="hdr-stat">LVL <span id="lvl-idx">1</span>/10</div>
+    <div class="hdr-stat">SCORE <span id="score">0</span></div>
+    <div class="hdr-stat">TIME <span id="timer">0.0</span>s</div>
+  </div>
+  <div class="hdr-actions">
+    <button class="hdr-btn danger" onclick="skipStage()">SKIP</button>
+  </div>
 </header>
 
-<div id="app-body">
+<!-- App Body -->
+<div id="app-body" style="display:none;">
+
+  <!-- Terminal -->
+  <div id="terminal-wrap">
+    <div class="term-topbar">
+      <div class="term-dot red"></div>
+      <div class="term-dot yellow"></div>
+      <div class="term-dot green"></div>
+      <div class="term-title">root@incident-root — bash</div>
+    </div>
     <div id="terminal-box"></div>
-    <aside id="sidebar">
-        <h2 id="stg-title" style="font-size:1.1rem; margin-top:0;"></h2>
-        <p id="stg-desc" style="font-size:0.85rem; color:#8b949e;"></p>
-        <div id="hint-area" class="hidden">
-            <p style="color:var(--accent); font-weight:bold; margin:0; font-size:0.8rem;">HINT</p>
-            <p id="hint-text" style="font-size:0.85rem; background:#161b22; padding:10px; border-radius:4px; border:1px solid var(--border);"></p>
+  </div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-section">
+      <div class="level-badge">
+        <div class="level-num" id="level-badge-num">LVL 1</div>
+        <div class="level-progress">
+          <div class="level-progress-fill" id="progress-fill" style="width:10%"></div>
         </div>
-        <button class="btn-skip" onclick="skipStage()">SKIP THIS CASE</button>
-    </aside>
+      </div>
+      <div class="incident-title" id="stg-title"></div>
+      <div class="incident-desc" id="stg-desc"></div>
+    </div>
+
+    <div class="hint-section">
+      <button class="hint-toggle" id="hint-toggle" onclick="toggleHint()">Hint</button>
+      <div class="hint-body" id="hint-body">
+        <span id="hint-text"></span>
+        <div class="hint-penalty" id="hint-penalty" style="display:none;">⚠ Base score reduced to 50</div>
+      </div>
+    </div>
+
+    <div class="cmds-section">
+      <div class="cmds-title">Available Commands</div>
+      <div class="cmd-list">
+        <span class="cmd-tag">ls</span>
+        <span class="cmd-tag">cat</span>
+        <span class="cmd-tag">chmod</span>
+        <span class="cmd-tag">chown</span>
+        <span class="cmd-tag">rm</span>
+        <span class="cmd-tag">kill</span>
+        <span class="cmd-tag">killall</span>
+        <span class="cmd-tag">apt-get</span>
+        <span class="cmd-tag">swapon</span>
+        <span class="cmd-tag">modprobe</span>
+        <span class="cmd-tag">echo</span>
+        <span class="cmd-tag">ps</span>
+        <span class="cmd-tag">dmesg</span>
+        <span class="cmd-tag">hint</span>
+        <span class="cmd-tag">clear</span>
+        <span class="cmd-tag">help</span>
+      </div>
+    </div>
+  </aside>
 </div>
 
-<div id="solution-article">
-    <div class="article-inner">
-        <h2 style="color:var(--success); margin-top:0;">✔ RESOLVED</h2>
-        <div id="article-content" style="line-height:1.6;"></div>
-        <button class="btn-next" onclick="nextStage()">LOAD NEXT CASE</button>
-    </div>
+<!-- Solution Panel -->
+<div id="solution-panel">
+  <div class="solution-inner">
+    <div class="solution-badge">RESOLVED</div>
+    <div class="solution-content" id="article-content"></div>
+    <button class="btn-next" onclick="nextStage()">Next →</button>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
-<script src="data/stages.js"></script>
-<script src="main.js"></script>
+<script>
+// ── Stages Data ──
+const stagesData=[
+  {id:1,title:"Port 80 Blocked",desc:"Nginx is down. Another process is holding port 80. Investigate the logs and free the port.",fs:{"/var/log/nginx/error.log":"bind() to 0.0.0.0:80 failed (Address already in use)"},solution:"killall apache2",hint:"Check /var/log/nginx/error.log. Is another web server occupying port 80?",article:"<h3>Port Conflict</h3><p>Only one process can bind to a port at a time. Apache2 was already listening on port 80, blocking Nginx from starting. <code>killall apache2</code> terminates all apache2 processes.</p>"},
+  {id:2,title:"Permission Trap",desc:"Nginx can't read its configuration file. Fix the permissions so the service can access it.",fs:{"/etc/nginx/nginx.conf":"Error: Permission Denied"},solution:"chmod 644 /etc/nginx/nginx.conf",hint:"Configuration files should be readable by all. Try chmod 644.",article:"<h3>File Permissions</h3><p>Config files typically need 644 (owner read/write, group/others read). Use <code>chmod 644 /etc/nginx/nginx.conf</code> to restore proper access.</p>"},
+  {id:3,title:"Disk Space Exhausted",desc:"'No space left on device' errors everywhere. Find and remove the bloat.",fs:{"/var/log/syslog":"write error: No space left on device"},solution:"rm -rf /tmp/large_temp_file.log",hint:"Check /tmp for large log files that can be safely deleted.",article:"<h3>Disk Management</h3><p>A full disk halts all write operations. Temp files in /tmp are safe to delete. <code>rm -rf /tmp/large_temp_file.log</code> reclaims the space immediately.</p>"},
+  {id:4,title:"Corrupted SSH Key",desc:"SSH refuses to start. Host key permissions are dangerously open.",fs:{"/etc/ssh/ssh_host_rsa_key":"Permissions 0777 are too open."},solution:"chmod 600 /etc/ssh/ssh_host_rsa_key",hint:"Private keys must not be accessible by other users. Use chmod 600.",article:"<h3>SSH Security</h3><p>SSH enforces strict permission checks on private keys. World-readable keys are rejected as a security measure. <code>chmod 600</code> limits access to owner only.</p>"},
+  {id:5,title:"Missing Dependency",desc:"Binary won't run. libssl.so.1.1 is missing from the system.",fs:{"error":"error while loading shared libraries: cannot open shared object file: No such file or directory"},solution:"apt-get install libssl-dev",hint:"Install the SSL development library via apt-get to restore the missing .so file.",article:"<h3>Shared Libraries</h3><p>Dynamic libraries (.so files) are loaded at runtime. The <code>-dev</code> package installs both the library and development headers. Without it, dependent binaries fail to launch.</p>"},
+  {id:6,title:"Wrong Owner",desc:"Web directory is owned by root. www-data needs write access to serve files.",fs:{"/var/www/html":"Owner: root, Permissions: drwxr-xr-x"},solution:"chown www-data:www-data /var/www/html",hint:"Change the owner to www-data using chown.",article:"<h3>Ownership</h3><p>Web servers run as the www-data user for security. If the document root is owned by root, the web server can't write files, upload content, or create caches.</p>"},
+  {id:7,title:"Zombie Process",desc:"A defunct process is stuck. Normal kill signals have no effect.",fs:{"ps":"PID 9999: [app] <defunct>"},solution:"kill -9 9999",hint:"Use SIGKILL (-9) to force-terminate the process. It cannot be ignored.",article:"<h3>Process Signals</h3><p>SIGTERM can be caught and ignored by a process. SIGKILL (signal 9) is handled by the kernel directly and cannot be blocked, making it the last resort for stuck processes.</p>"},
+  {id:8,title:"DNS Resolution Failure",desc:"No domain names resolve. The server can't reach anything by hostname.",fs:{"/etc/resolv.conf":"nameserver 0.0.0.0"},solution:"echo 'nameserver 8.8.8.8' > /etc/resolv.conf",hint:"Set a valid nameserver like 8.8.8.8 in /etc/resolv.conf.",article:"<h3>DNS Configuration</h3><p><code>/etc/resolv.conf</code> defines which DNS servers to query. 0.0.0.0 is invalid. Pointing to Google's 8.8.8.8 restores name resolution immediately.</p>"},
+  {id:9,title:"SWAP Pressure",desc:"System is crawling. RAM is exhausted and swap is inactive.",fs:{"/proc/swaps":"Filename: (empty)"},solution:"swapon /swapfile",hint:"Check /proc/swaps — the swapfile exists but isn't activated. Use swapon.",article:"<h3>Swap Space</h3><p>Swap extends effective RAM by using disk space. A swapfile can be created and exist on disk but remain inactive until explicitly enabled with <code>swapon</code>.</p>"},
+  {id:10,title:"Kernel Module Missing",desc:"Iptables is failing. The ip_tables kernel module isn't loaded.",fs:{"dmesg":"modprobe: FATAL: Module ip_tables not found in directory"},solution:"modprobe ip_tables",hint:"Load the missing kernel module using modprobe.",article:"<h3>Kernel Modules</h3><p>Linux loads kernel features as modules on demand. <code>modprobe ip_tables</code> loads the netfilter module required by iptables, restoring firewall functionality without a reboot.</p>"}
+];
+
+// ── Terminal Setup ──
+const term = new Terminal({
+  cursorBlink:true,fontSize:14,fontFamily:'"JetBrains Mono",monospace',
+  theme:{background:'#000000',foreground:'#c9e0f5',cursor:'#00d4ff',selection:'rgba(0,212,255,0.2)'}
+});
+const fitAddon = new FitAddon.FitAddon();
+term.loadAddon(fitAddon);
+
+// ── State ──
+let currentLvl=0,cmd='',cursorIdx=0,score=0,totalSeconds=0;
+let history=[],historyIdx=-1,missCount=0,startTime=0;
+let timerInterval=null,currentStageBaseScore=100;
+let hintShown=false,hintPenaltyApplied=false;
+
+window.onload=function(){
+  const container=document.getElementById('terminal-box');
+  term.open(container);
+  fitAddon.fit();
+  window.addEventListener('resize',()=>fitAddon.fit());
+  container.addEventListener('click',()=>term.focus());
+  const saved=localStorage.getItem('ir_lvl');
+  if(saved&&parseInt(saved)>0)document.getElementById('resume-btn').classList.remove('hidden');
+};
+
+function startGame(isResume=false){
+  if(isResume){
+    currentLvl=parseInt(localStorage.getItem('ir_lvl'))||0;
+    score=parseInt(localStorage.getItem('ir_score'))||0;
+    totalSeconds=parseFloat(localStorage.getItem('ir_time'))||0;
+  }else{
+    localStorage.clear();score=0;currentLvl=0;totalSeconds=0;
+  }
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('app-header').style.display='flex';
+  document.getElementById('app-body').style.display='flex';
+  loadStage();
+}
+
+function loadStage(){
+  if(currentLvl>=stagesData.length){showResult();return;}
+  const s=stagesData[currentLvl];
+  currentStageBaseScore=100;
+  hintShown=false;hintPenaltyApplied=false;
+  missCount=0;
+
+  document.getElementById('lvl-idx').innerText=currentLvl+1;
+  document.getElementById('level-badge-num').innerText='LVL '+(currentLvl+1);
+  document.getElementById('progress-fill').style.width=((currentLvl+1)/stagesData.length*100)+'%';
+  document.getElementById('stg-title').innerText=s.title;
+  document.getElementById('stg-desc').innerText=s.desc;
+  document.getElementById('solution-panel').style.display='none';
+  document.getElementById('hint-body').classList.remove('open');
+  document.getElementById('hint-toggle').classList.remove('open');
+  document.getElementById('hint-penalty').style.display='none';
+  document.getElementById('hint-text').innerText=s.hint;
+
+  localStorage.setItem('ir_lvl',currentLvl);
+  localStorage.setItem('ir_score',score);
+  localStorage.setItem('ir_time',totalSeconds);
+
+  term.clear();
+  term.writeln(`\x1b[1;36m╔══════════════════════════════════════╗\x1b[0m`);
+  term.writeln(`\x1b[1;36m║  INCIDENT #${String(currentLvl+1).padStart(2,'0')} — ${s.title.padEnd(22,' ')}║\x1b[0m`);
+  term.writeln(`\x1b[1;36m╚══════════════════════════════════════╝\x1b[0m`);
+  term.writeln('');
+  term.writeln(`\x1b[2m${s.desc}\x1b[0m`);
+  term.writeln('');
+
+  startTime=performance.now();
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const now=(performance.now()-startTime)/1000;
+    const el=document.getElementById('timer');
+    el.innerText=now.toFixed(1);
+    if(now>120){el.classList.add('danger');}
+    else{el.classList.remove('danger');}
+  },100);
+
+  drawPrompt();
+  term.focus();
+}
+
+function toggleHint(){
+  const body=document.getElementById('hint-body');
+  const btn=document.getElementById('hint-toggle');
+  const open=body.classList.contains('open');
+  if(!open){
+    // first time: apply penalty
+    if(!hintShown){
+      hintShown=true;
+      if(!hintPenaltyApplied){
+        hintPenaltyApplied=true;
+        currentStageBaseScore=50;
+        document.getElementById('hint-penalty').style.display='block';
+        term.writeln(`\r\n\x1b[33m[HINT] Base score reduced to 50\x1b[0m`);
+      }
+    }
+    body.classList.add('open');
+    btn.classList.add('open');
+  }else{
+    body.classList.remove('open');
+    btn.classList.remove('open');
+  }
+}
+
+function skipStage(){
+  if(confirm('Skip this incident? You\'ll score 0 for this level.')){
+    clearInterval(timerInterval);
+    nextStage();
+  }
+}
+
+function drawPrompt(){
+  term.write(`\r\n\x1b[1;32mroot@incident-root\x1b[0m:\x1b[1;34m~\x1b[0m# `);
+  cmd='';cursorIdx=0;
+}
+
+term.onData(data=>{
+  switch(data){
+    case'\r':
+      term.write('\r\n');
+      const fc=cmd.trim();
+      if(fc){history.push(fc);historyIdx=history.length;}
+      processCmd(fc);
+      if(document.getElementById('solution-panel').style.display!=='block')drawPrompt();
+      break;
+    case'\u007F':
+      if(cursorIdx>0){cmd=cmd.slice(0,cursorIdx-1)+cmd.slice(cursorIdx);cursorIdx--;term.write('\b\x1b[P');}
+      break;
+    case'\u001b[A':if(historyIdx>0){historyIdx--;replaceLine(history[historyIdx]);}break;
+    case'\u001b[B':if(historyIdx<history.length-1){historyIdx++;replaceLine(history[historyIdx]);}else{historyIdx=history.length;replaceLine('');}break;
+    case'\u001b[D':if(cursorIdx>0){cursorIdx--;term.write(data);}break;
+    case'\u001b[C':if(cursorIdx<cmd.length){cursorIdx++;term.write(data);}break;
+    default:if(data.charCodeAt(0)>=32)insertText(data);
+  }
+});
+
+function insertText(text){
+  const tail=cmd.slice(cursorIdx);
+  cmd=cmd.slice(0,cursorIdx)+text+tail;
+  term.write('\x1b[s'+text+tail+'\x1b[u');
+  for(let i=0;i<text.length;i++){term.write('\x1b[C');cursorIdx++;}
+}
+function replaceLine(newCmd){
+  while(cursorIdx>0){term.write('\b\x1b[P');cursorIdx--;}
+  term.write('\x1b[K');cmd=newCmd;term.write(cmd);cursorIdx=cmd.length;
+}
+
+function processCmd(input){
+  if(!input)return;
+  const s=stagesData[currentLvl];
+
+  // check solution
+  if(input===s.solution||input==='sudo '+s.solution){
+    clearInterval(timerInterval);
+    const t=(performance.now()-startTime)/1000;
+    totalSeconds+=t;
+    const timeBonus=t<=120?100:0;
+    const stageScore=currentStageBaseScore+timeBonus;
+    score+=stageScore;
+    document.getElementById('score').innerText=score;
+    term.writeln(`\x1b[1;32m[OK] Resolved in ${t.toFixed(1)}s — +${stageScore} pts (base:${currentStageBaseScore} bonus:${timeBonus})\x1b[0m`);
+    showSolution(s);
+    return;
+  }
+
+  missCount++;
+  if(missCount>=3&&!hintShown){
+    term.writeln(`\x1b[33m[SYSTEM] ${3-Math.min(missCount,3)} failed attempts. Type 'hint' or check the sidebar.\x1b[0m`);
+  }
+
+  const args=input.split(' ');
+  const base=args[0];
+  const supported=['ls','cat','chmod','chown','rm','kill','killall','apt-get','swapon','modprobe','echo','ps','dmesg','help','clear','hint'];
+
+  if(base==='hint'){toggleHint();term.write('\x1b[36m[hint panel toggled]\x1b[0m');return;}
+  if(base==='clear'){term.clear();return;}
+  if(base==='help'){term.write('\x1b[2mAvailable: '+supported.join(', ')+'\x1b[0m');return;}
+  if(base==='ls'){term.write('\x1b[36m'+Object.keys(s.fs).join('  ')+'\x1b[0m');return;}
+  if(base==='cat'){const v=s.fs[args[1]];term.write(v?'\x1b[33m'+v+'\x1b[0m':`cat: ${args[1]||''}: No such file or directory`);return;}
+  if(base==='ps'){term.write('\x1b[2mPID  TTY   TIME CMD\r\n 562 pts/0 00:00 systemd\r\n'+Object.values(s.fs).join('\r\n')+'\x1b[0m');return;}
+  if(base==='dmesg'){const v=s.fs['dmesg'];term.write(v?'\x1b[33m'+v+'\x1b[0m':'(no relevant kernel messages)');return;}
+  if(supported.includes(base)){term.write(`\x1b[31m[EXEC] Command ran but the incident persists.\x1b[0m`);return;}
+  term.write(`\x1b[31mbash: ${base}: command not found\x1b[0m`);
+}
+
+function showSolution(s){
+  document.getElementById('article-content').innerHTML=s.article;
+  document.getElementById('solution-panel').style.display='block';
+}
+
+function nextStage(){
+  currentLvl++;
+  loadStage();
+}
+
+function showResult(){
+  clearInterval(timerInterval);
+  const mins=Math.floor(totalSeconds/60);
+  const secs=Math.floor(totalSeconds%60);
+  document.getElementById('result-screen').style.display='flex';
+  document.getElementById('app-header').style.display='none';
+  document.getElementById('app-body').style.display='none';
+
+  let rank='Junior Ops';
+  if(score>=1800)rank='God of SRE';
+  else if(score>=1500)rank='Legendary SRE';
+  else if(score>=1100)rank='Senior Engineer';
+  else if(score>=700)rank='SysAdmin';
+
+  document.getElementById('rank-msg').innerText=rank;
+  document.getElementById('final-score').innerText=score;
+  document.getElementById('res-score').innerText=score;
+  document.getElementById('res-time').innerText=`${mins}m${secs}s`;
+  localStorage.clear();
+}
+
+function shareX(){
+  const rank=document.getElementById('rank-msg').innerText;
+  const s=score;
+  const text=encodeURIComponent(`[IncidentRoot]\nRANK: ${rank}\nSCORE: ${s}\n\nCan you resolve all 10 Linux incidents?\n#IncidentRoot #Linux #SRE`);
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent('https://incident.f5.si')}`);
+}
+</script>
 </body>
 </html>
