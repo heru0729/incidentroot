@@ -287,7 +287,7 @@ body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(r
   </div>
 </header>
 
-<!-- ── App Body ── */
+<!-- ── App Body ── -->
 <div id="app-body" style="display:none;">
   <div id="terminal-wrap">
     <div class="term-topbar">
@@ -574,6 +574,9 @@ window.onload=function(){
   if(saved&&parseInt(saved)>0&&localStorage.getItem('ir_mode')==='normal'){
     document.getElementById('resume-btn').classList.remove('hidden');
   }
+  // init default selections after DOM is ready
+  selectMode('normal');
+  selectDiff('easy');
 };
 
 // ── Mode & Diff selection ──
@@ -591,8 +594,7 @@ function selectDiff(d){
   document.querySelectorAll('.diff-btn').forEach(b=>b.className='diff-btn');
   document.getElementById('diff-'+d).className='diff-btn selected-'+d;
 }
-// init defaults
-selectMode('normal');selectDiff('easy');
+// init defaults — called in window.onload after DOM ready
 
 // ── Game Start ──
 function startGame(isResume=false){
