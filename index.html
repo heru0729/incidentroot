@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IncidentRoot | Linux SRE Training</title>
-<meta name="description" content="Master Linux terminal & server troubleshooting. Solve 10 realistic SRE incidents.">
+<meta name="description" content="Master Linux terminal & server troubleshooting. Solve realistic SRE incidents.">
 <meta property="og:title" content="IncidentRoot | Ultimate Linux Terminal Game">
-<meta property="og:description" content="Can you solve 10 server incidents? Level up your SysAdmin skills.">
+<meta property="og:description" content="Can you resolve all server incidents? Level up your SysAdmin skills.">
 <meta property="og:url" content="https://incident.f5.si/">
 <meta name="twitter:card" content="summary_large_image">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-KB4FM3E704"></script>
@@ -15,414 +15,188 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
 <style>
-/* ── Reset & Variables ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
-  --bg:#080c10;
-  --surface:#0d1117;
-  --panel:#111920;
-  --border:#1e2d3d;
-  --border2:#243447;
-  --text:#c9e0f5;
-  --dim:#5a7a9a;
-  --accent:#00d4ff;
-  --accent2:#0099cc;
-  --green:#00ff88;
-  --green2:#00cc66;
-  --red:#ff4444;
-  --yellow:#ffcc00;
-  --orange:#ff8800;
+  --bg:#080c10;--surface:#0d1117;--panel:#111920;
+  --border:#1e2d3d;--border2:#243447;
+  --text:#c9e0f5;--dim:#5a7a9a;
+  --accent:#00d4ff;--accent2:#0099cc;
+  --green:#00ff88;--green2:#00cc66;
+  --red:#ff4444;--yellow:#ffcc00;--orange:#ff8800;
   --font-mono:'JetBrains Mono',monospace;
   --font-sans:'IBM Plex Sans',sans-serif;
 }
-
 html,body{height:100%;overflow:hidden;}
-body{
-  font-family:var(--font-sans);
-  background:var(--bg);
-  color:var(--text);
-  display:flex;
-  flex-direction:column;
-}
-
-/* ── Scanline overlay ── */
-body::before{
-  content:'';
-  position:fixed;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);
-  pointer-events:none;z-index:9999;
-}
-
-/* ── Grid BG ── */
-body::after{
-  content:'';
-  position:fixed;inset:0;
-  background-image:
-    linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);
-  background-size:40px 40px;
-  pointer-events:none;z-index:0;
-}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:9999;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
 
 /* ── Start Screen ── */
 #start-screen{
-  position:fixed;inset:0;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:var(--bg);z-index:500;
-  gap:0;
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:var(--bg);z-index:500;padding:20px;
 }
+.logo-text{
+  font-family:var(--font-mono);font-size:clamp(2rem,8vw,4rem);font-weight:800;
+  color:var(--accent);letter-spacing:.05em;
+  text-shadow:0 0 40px rgba(0,212,255,.6);
+  animation:glow 3s ease-in-out infinite;
+  margin-bottom:6px;
+}
+@keyframes glow{0%,100%{text-shadow:0 0 40px rgba(0,212,255,.6);}50%{text-shadow:0 0 70px rgba(0,212,255,.9),0 0 120px rgba(0,212,255,.3);}}
+.logo-sub{font-family:var(--font-mono);font-size:.8rem;color:var(--dim);letter-spacing:.2em;text-transform:uppercase;margin-bottom:40px;}
 
-.start-logo{
-  position:relative;
-  margin-bottom:8px;
+/* Mode selector */
+.mode-selector{
+  display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap;justify-content:center;
 }
-.start-logo-text{
-  font-family:var(--font-mono);
-  font-size:clamp(2rem,8vw,4.5rem);
-  font-weight:800;
-  color:var(--accent);
-  letter-spacing:.05em;
-  text-shadow:0 0 40px rgba(0,212,255,.6),0 0 80px rgba(0,212,255,.2);
-  animation:pulse 3s ease-in-out infinite;
-}
-@keyframes pulse{0%,100%{text-shadow:0 0 40px rgba(0,212,255,.6),0 0 80px rgba(0,212,255,.2);}50%{text-shadow:0 0 60px rgba(0,212,255,.9),0 0 120px rgba(0,212,255,.4);}}
-
-.start-sub{
-  font-family:var(--font-mono);
-  font-size:.85rem;
-  color:var(--dim);
-  letter-spacing:.2em;
-  text-transform:uppercase;
-  margin-bottom:48px;
-}
-
-.start-stats{
-  display:flex;gap:32px;
-  margin-bottom:48px;
-  flex-wrap:wrap;justify-content:center;
-}
-.start-stat{
+.mode-card{
+  width:160px;padding:20px 16px;
+  border:2px solid var(--border);border-radius:8px;
+  background:var(--surface);cursor:pointer;transition:.2s;
   text-align:center;
-  background:rgba(0,212,255,.05);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:16px 24px;
-  min-width:100px;
 }
-.start-stat-num{
-  font-family:var(--font-mono);
-  font-size:1.6rem;font-weight:800;
-  color:var(--accent);
-}
-.start-stat-lbl{
-  font-size:.7rem;color:var(--dim);
-  text-transform:uppercase;letter-spacing:.1em;
-  margin-top:4px;
-}
+.mode-card:hover{border-color:var(--accent);background:rgba(0,212,255,.05);}
+.mode-card.selected{border-color:var(--accent);background:rgba(0,212,255,.1);}
+.mode-card.rta.selected{border-color:var(--orange);background:rgba(255,136,0,.1);}
+.mode-card.rta:hover{border-color:var(--orange);}
+.mode-icon{font-size:1.8rem;margin-bottom:8px;}
+.mode-name{font-family:var(--font-mono);font-weight:800;font-size:.9rem;color:var(--text);margin-bottom:4px;}
+.mode-desc{font-size:.72rem;color:var(--dim);line-height:1.5;}
 
-.start-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+/* Difficulty selector */
+.diff-selector{display:flex;gap:8px;margin-bottom:32px;}
+.diff-btn{
+  font-family:var(--font-mono);font-size:.8rem;font-weight:700;
+  padding:8px 20px;border-radius:4px;border:2px solid var(--border);
+  background:transparent;color:var(--dim);cursor:pointer;transition:.2s;
+  letter-spacing:.05em;text-transform:uppercase;
+}
+.diff-btn:hover{border-color:var(--dim);color:var(--text);}
+.diff-btn.selected-easy{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.08);}
+.diff-btn.selected-normal{border-color:var(--yellow);color:var(--yellow);background:rgba(255,204,0,.08);}
+.diff-btn.selected-hard{border-color:var(--red);color:var(--red);background:rgba(255,68,68,.08);}
 
+.start-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
 .btn-start{
-  font-family:var(--font-mono);
-  font-weight:700;font-size:.95rem;
-  padding:14px 36px;
-  border-radius:4px;
-  border:2px solid var(--accent);
-  background:rgba(0,212,255,.1);
-  color:var(--accent);
-  cursor:pointer;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  transition:.2s;
-  position:relative;overflow:hidden;
+  font-family:var(--font-mono);font-weight:700;font-size:.95rem;
+  padding:14px 36px;border-radius:4px;border:2px solid var(--accent);
+  background:rgba(0,212,255,.1);color:var(--accent);cursor:pointer;
+  letter-spacing:.08em;text-transform:uppercase;transition:.2s;position:relative;overflow:hidden;
 }
-.btn-start::before{
-  content:'';position:absolute;inset:0;
-  background:var(--accent);
-  transform:translateX(-100%);
-  transition:.2s;z-index:-1;
-}
+.btn-start::before{content:'';position:absolute;inset:0;background:var(--accent);transform:translateX(-100%);transition:.2s;z-index:-1;}
 .btn-start:hover{color:#000;}
 .btn-start:hover::before{transform:translateX(0);}
+.btn-start.rta-btn{border-color:var(--orange);background:rgba(255,136,0,.1);color:var(--orange);}
+.btn-start.rta-btn::before{background:var(--orange);}
 .btn-start.secondary{border-color:var(--border2);background:transparent;color:var(--dim);}
-.btn-start.secondary:hover{border-color:var(--dim);color:var(--text);}
+.btn-start.secondary:hover{color:var(--text);border-color:var(--dim);}
 .btn-start.secondary::before{background:var(--panel);}
-.btn-start.secondary:hover::before{transform:translateX(0);}
 .btn-start.hidden{display:none;}
 
 /* ── Header ── */
 #app-header{
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 16px;
-  height:44px;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-  position:relative;z-index:10;
+  padding:0 16px;height:44px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  flex-shrink:0;position:relative;z-index:10;
 }
-.hdr-brand{
-  font-family:var(--font-mono);
-  font-weight:800;font-size:.9rem;
-  color:var(--accent);
-  letter-spacing:.05em;
+.hdr-brand{font-family:var(--font-mono);font-weight:800;font-size:.9rem;color:var(--accent);letter-spacing:.05em;}
+.hdr-mode-badge{
+  font-family:var(--font-mono);font-size:.65rem;font-weight:700;
+  padding:2px 8px;border-radius:3px;margin-left:8px;
+  vertical-align:middle;text-transform:uppercase;letter-spacing:.05em;
 }
-.hdr-status{
-  display:flex;gap:20px;align-items:center;
-  font-family:var(--font-mono);font-size:.8rem;
-}
+.hdr-mode-badge.easy{background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.3);}
+.hdr-mode-badge.normal{background:rgba(255,204,0,.15);color:var(--yellow);border:1px solid rgba(255,204,0,.3);}
+.hdr-mode-badge.hard{background:rgba(255,68,68,.15);color:var(--red);border:1px solid rgba(255,68,68,.3);}
+.hdr-mode-badge.rta{background:rgba(255,136,0,.15);color:var(--orange);border:1px solid rgba(255,136,0,.3);}
+.hdr-status{display:flex;gap:20px;align-items:center;font-family:var(--font-mono);font-size:.8rem;}
 .hdr-stat{color:var(--dim);}
 .hdr-stat span{color:var(--text);font-weight:700;}
 #timer{font-weight:800;color:var(--accent);transition:color .3s;}
 #timer.danger{color:var(--red);animation:blink .8s ease-in-out infinite;}
+/* RTA: total elapsed */
+#rta-timer{font-weight:800;color:var(--orange);}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.5;}}
 .hdr-actions{display:flex;gap:8px;}
-.hdr-btn{
-  font-family:var(--font-mono);font-size:.7rem;font-weight:700;
-  padding:5px 12px;border-radius:3px;
-  border:1px solid var(--border2);
-  background:transparent;color:var(--dim);
-  cursor:pointer;letter-spacing:.05em;
-  text-transform:uppercase;transition:.15s;
-}
+.hdr-btn{font-family:var(--font-mono);font-size:.7rem;font-weight:700;padding:5px 12px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--dim);cursor:pointer;letter-spacing:.05em;text-transform:uppercase;transition:.15s;}
 .hdr-btn:hover{border-color:var(--accent);color:var(--accent);}
 .hdr-btn.danger{border-color:rgba(255,68,68,.3);color:var(--red);opacity:.6;}
 .hdr-btn.danger:hover{opacity:1;background:rgba(255,68,68,.1);}
 
 /* ── App Body ── */
-#app-body{
-  display:flex;
-  flex:1;
-  min-height:0;
-  position:relative;z-index:1;
-}
-
-/* ── Terminal ── */
-#terminal-wrap{
-  flex:1;min-width:0;
-  display:flex;flex-direction:column;
-  background:#000;
-  position:relative;
-}
-.term-topbar{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 12px;
-  background:#0a0a0a;
-  border-bottom:1px solid #1a1a1a;
-  flex-shrink:0;
-}
+#app-body{display:flex;flex:1;min-height:0;position:relative;z-index:1;}
+#terminal-wrap{flex:1;min-width:0;display:flex;flex-direction:column;background:#000;}
+.term-topbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#0a0a0a;border-bottom:1px solid #1a1a1a;flex-shrink:0;}
 .term-dot{width:12px;height:12px;border-radius:50%;}
-.term-dot.red{background:#ff5f56;}
-.term-dot.yellow{background:#ffbd2e;}
-.term-dot.green{background:#27c93f;}
-.term-title{
-  font-family:var(--font-mono);font-size:.75rem;
-  color:#555;margin:0 auto;
-}
+.term-dot.r{background:#ff5f56;}.term-dot.y{background:#ffbd2e;}.term-dot.g{background:#27c93f;}
+.term-title{font-family:var(--font-mono);font-size:.75rem;color:#555;margin:0 auto;}
 #terminal-box{flex:1;padding:8px;overflow:hidden;}
 
 /* ── Sidebar ── */
-#sidebar{
-  width:320px;flex-shrink:0;
-  display:flex;flex-direction:column;
-  border-left:1px solid var(--border);
-  background:var(--surface);
-  overflow:hidden;
-}
+#sidebar{width:320px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid var(--border);background:var(--surface);overflow:hidden;}
+.sidebar-section{padding:16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.level-badge{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.level-num{font-family:var(--font-mono);font-size:.7rem;font-weight:700;background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.3);color:var(--accent);padding:2px 8px;border-radius:3px;letter-spacing:.05em;}
+.level-progress{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.level-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .5s ease;}
+.incident-title{font-family:var(--font-mono);font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:8px;line-height:1.4;}
+.incident-desc{font-size:.82rem;color:var(--dim);line-height:1.6;}
 
-.sidebar-section{
-  padding:16px;
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-}
+/* RTA splitboard */
+#rta-splits{padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;max-height:200px;overflow-y:auto;}
+.rta-splits-title{font-family:var(--font-mono);font-size:.7rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.rta-split-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-family:var(--font-mono);font-size:.75rem;}
+.rta-split-lbl{color:var(--dim);}
+.rta-split-time{color:var(--green);font-weight:700;}
+.rta-split-time.pending{color:var(--dim);}
+.rta-split-time.current{color:var(--yellow);animation:blink .8s infinite;}
 
-/* Level badge */
-.level-badge{
-  display:flex;align-items:center;gap:10px;
-  margin-bottom:10px;
-}
-.level-num{
-  font-family:var(--font-mono);font-size:.7rem;font-weight:700;
-  background:rgba(0,212,255,.15);
-  border:1px solid rgba(0,212,255,.3);
-  color:var(--accent);
-  padding:2px 8px;border-radius:3px;
-  letter-spacing:.05em;
-}
-.level-progress{
-  flex:1;height:3px;
-  background:var(--border);border-radius:2px;
-  overflow:hidden;
-}
-.level-progress-fill{
-  height:100%;
-  background:linear-gradient(90deg,var(--accent),var(--green));
-  border-radius:2px;
-  transition:width .5s ease;
-}
-
-.incident-title{
-  font-family:var(--font-mono);font-weight:700;
-  font-size:.95rem;color:var(--text);
-  margin-bottom:8px;
-  line-height:1.4;
-}
-.incident-desc{
-  font-size:.82rem;color:var(--dim);
-  line-height:1.6;
-}
-
-/* Hint */
-.hint-section{
-  padding:16px;
-  border-bottom:1px solid var(--border);
-  flex-shrink:0;
-}
-.hint-toggle{
-  font-family:var(--font-mono);font-size:.75rem;font-weight:700;
-  color:var(--yellow);letter-spacing:.05em;
-  background:transparent;border:none;cursor:pointer;
-  display:flex;align-items:center;gap:6px;
-  padding:0;text-transform:uppercase;
-}
+.hint-section{padding:16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.hint-toggle{font-family:var(--font-mono);font-size:.75rem;font-weight:700;color:var(--yellow);letter-spacing:.05em;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0;text-transform:uppercase;}
 .hint-toggle::before{content:'▶';font-size:.6rem;transition:transform .2s;}
 .hint-toggle.open::before{transform:rotate(90deg);}
-.hint-body{
-  display:none;
-  margin-top:10px;
-  font-family:var(--font-mono);font-size:.8rem;
-  color:var(--text);
-  background:rgba(255,204,0,.05);
-  border:1px solid rgba(255,204,0,.2);
-  border-radius:4px;
-  padding:10px 12px;
-  line-height:1.6;
-}
+.hint-body{display:none;margin-top:10px;font-family:var(--font-mono);font-size:.8rem;color:var(--text);background:rgba(255,204,0,.05);border:1px solid rgba(255,204,0,.2);border-radius:4px;padding:10px 12px;line-height:1.6;}
 .hint-body.open{display:block;}
-.hint-penalty{
-  font-size:.7rem;color:var(--red);
-  margin-top:6px;opacity:.7;
-}
-
-/* Commands reference */
-.cmds-section{
-  padding:16px;
-  flex:1;overflow-y:auto;
-}
-.cmds-title{
-  font-family:var(--font-mono);font-size:.7rem;font-weight:700;
-  color:var(--dim);text-transform:uppercase;letter-spacing:.1em;
-  margin-bottom:10px;
-}
+.hint-penalty{font-size:.7rem;color:var(--red);margin-top:6px;opacity:.7;}
+.cmds-section{padding:16px;flex:1;overflow-y:auto;}
+.cmds-title{font-family:var(--font-mono);font-size:.7rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
 .cmd-list{display:flex;flex-wrap:wrap;gap:4px;}
-.cmd-tag{
-  font-family:var(--font-mono);font-size:.7rem;
-  background:var(--panel);
-  border:1px solid var(--border);
-  color:var(--dim);
-  padding:2px 7px;border-radius:3px;
-}
+.cmd-tag{font-family:var(--font-mono);font-size:.7rem;background:var(--panel);border:1px solid var(--border);color:var(--dim);padding:2px 7px;border-radius:3px;}
 
-/* ── Solution panel ── */
-#solution-panel{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;
-  background:var(--surface);
-  border-top:2px solid var(--green);
-  z-index:200;
-  max-height:50vh;
-  overflow-y:auto;
-}
-.solution-inner{
-  max-width:900px;margin:0 auto;
-  padding:20px 24px;
-  display:flex;gap:24px;align-items:flex-start;
-  flex-wrap:wrap;
-}
-.solution-badge{
-  display:flex;align-items:center;gap:8px;
-  font-family:var(--font-mono);font-weight:800;
-  font-size:1rem;color:var(--green);
-  flex-shrink:0;
-  align-self:flex-start;
-  margin-top:2px;
-}
+/* ── Solution Panel ── */
+#solution-panel{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:2px solid var(--green);z-index:200;max-height:50vh;overflow-y:auto;}
+.solution-inner{max-width:900px;margin:0 auto;padding:20px 24px;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
+.solution-badge{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-weight:800;font-size:1rem;color:var(--green);flex-shrink:0;align-self:flex-start;margin-top:2px;}
 .solution-badge::before{content:'✓';font-size:1.2rem;}
-.solution-content{
-  flex:1;min-width:200px;
-  font-size:.82rem;line-height:1.7;
-  color:var(--dim);
-}
-.solution-content h3{
-  font-family:var(--font-mono);font-weight:700;
-  font-size:.85rem;color:var(--text);
-  margin-bottom:6px;
-}
+.solution-content{flex:1;min-width:200px;font-size:.82rem;line-height:1.7;color:var(--dim);}
+.solution-content h3{font-family:var(--font-mono);font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:6px;}
 .solution-content p{margin-bottom:8px;}
-.btn-next{
-  font-family:var(--font-mono);font-weight:700;font-size:.85rem;
-  padding:10px 24px;border-radius:4px;
-  background:var(--green);color:#000;
-  border:none;cursor:pointer;
-  letter-spacing:.05em;text-transform:uppercase;
-  flex-shrink:0;align-self:flex-start;
-  transition:.15s;
-}
+.solution-content code{font-family:var(--font-mono);background:var(--panel);padding:1px 5px;border-radius:3px;color:var(--accent);font-size:.8rem;}
+.btn-next{font-family:var(--font-mono);font-weight:700;font-size:.85rem;padding:10px 24px;border-radius:4px;background:var(--green);color:#000;border:none;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;flex-shrink:0;align-self:flex-start;transition:.15s;}
 .btn-next:hover{background:var(--green2);}
 
 /* ── Result Screen ── */
-#result-screen{
-  position:fixed;inset:0;
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  background:var(--bg);z-index:600;
-  gap:0;
-}
-.result-label{
-  font-family:var(--font-mono);font-size:.75rem;font-weight:700;
-  color:var(--dim);letter-spacing:.2em;text-transform:uppercase;
-  margin-bottom:12px;
-}
-.result-rank{
-  font-family:var(--font-mono);font-weight:800;
-  font-size:clamp(1.8rem,6vw,3.5rem);
-  color:var(--green);
-  text-shadow:0 0 40px rgba(0,255,136,.4);
-  margin-bottom:8px;
-  text-align:center;
-}
-.result-score{
-  font-family:var(--font-mono);font-size:1rem;
-  color:var(--dim);margin-bottom:40px;
-}
+#result-screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);z-index:600;padding:20px;}
+.result-label{font-family:var(--font-mono);font-size:.75rem;font-weight:700;color:var(--dim);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px;}
+.result-rank{font-family:var(--font-mono);font-weight:800;font-size:clamp(1.8rem,6vw,3.5rem);color:var(--green);text-shadow:0 0 40px rgba(0,255,136,.4);margin-bottom:8px;text-align:center;}
+.result-rank.rta-result{color:var(--orange);text-shadow:0 0 40px rgba(255,136,0,.4);}
+.result-score{font-family:var(--font-mono);font-size:1rem;color:var(--dim);margin-bottom:32px;}
 .result-score span{color:var(--accent);font-weight:700;}
-
-.result-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);
-  gap:12px;margin-bottom:40px;
-  width:min(500px,90vw);
-}
-.result-cell{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:6px;padding:16px;text-align:center;
-}
-.result-cell-num{
-  font-family:var(--font-mono);font-size:1.5rem;font-weight:800;
-  color:var(--accent);
-}
-.result-cell-lbl{
-  font-size:.7rem;color:var(--dim);
-  text-transform:uppercase;letter-spacing:.08em;
-  margin-top:4px;
-}
-
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px;width:min(500px,90vw);}
+.result-cell{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:16px;text-align:center;}
+.result-cell-num{font-family:var(--font-mono);font-size:1.5rem;font-weight:800;color:var(--accent);}
+.result-cell-lbl{font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+/* RTA splits table in result */
+.rta-result-splits{width:min(500px,90vw);margin-bottom:32px;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.rta-result-splits-title{font-family:var(--font-mono);font-size:.75rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;padding:10px 14px;border-bottom:1px solid var(--border);}
+.rta-result-row{display:flex;justify-content:space-between;padding:6px 14px;font-family:var(--font-mono);font-size:.75rem;border-bottom:1px solid var(--border);}
+.rta-result-row:last-child{border-bottom:none;}
+.rta-result-row.total{color:var(--orange);font-weight:700;}
 .result-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
-.btn-result{
-  font-family:var(--font-mono);font-weight:700;font-size:.85rem;
-  padding:12px 28px;border-radius:4px;
-  border:2px solid var(--border2);
-  background:transparent;color:var(--dim);
-  cursor:pointer;letter-spacing:.06em;text-transform:uppercase;
-  transition:.2s;
-}
+.btn-result{font-family:var(--font-mono);font-weight:700;font-size:.85rem;padding:12px 28px;border-radius:4px;border:2px solid var(--border2);background:transparent;color:var(--dim);cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:.2s;}
 .btn-result:hover{border-color:var(--text);color:var(--text);}
 .btn-result.primary{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.08);}
 .btn-result.primary:hover{background:rgba(0,212,255,.2);}
@@ -432,69 +206,61 @@ body::after{
   html,body{overflow:hidden;}
   body{overscroll-behavior-y:contain;}
   #app-body{flex-direction:column;overflow:hidden;}
-  #terminal-wrap{
-    flex:1;min-height:0;
-  }
-  #sidebar{
-    width:100%;height:auto;flex-shrink:0;
-    border-left:none;border-top:1px solid var(--border);
-    max-height:38vh;overflow-y:auto;
-  }
+  #terminal-wrap{flex:1;min-height:0;}
+  #sidebar{width:100%;height:auto;flex-shrink:0;border-left:none;border-top:1px solid var(--border);max-height:36vh;overflow-y:auto;}
+  .mode-selector{gap:8px;}
+  .mode-card{width:130px;padding:14px 10px;}
   #solution-panel{max-height:60vh;}
-  .solution-inner{padding:14px 16px;gap:14px;}
   .hdr-status{gap:10px;}
-  .hdr-stat:not(:last-child){display:none;}
-  .result-grid{grid-template-columns:repeat(3,1fr);}
-  .start-stats{gap:16px;}
+  .hdr-stat:nth-child(2){display:none;}
 }
 </style>
 </head>
 <body>
 
-<!-- Start Screen -->
+<!-- ── Start Screen ── -->
 <div id="start-screen">
-  <div class="start-logo">
-    <div class="start-logo-text">IncidentRoot</div>
-  </div>
-  <div class="start-sub">Linux SRE Training Lab</div>
-  <div class="start-stats">
-    <div class="start-stat">
-      <div class="start-stat-num">10</div>
-      <div class="start-stat-lbl">Incidents</div>
+  <div class="logo-text">IncidentRoot</div>
+  <div class="logo-sub">Linux SRE Training Lab</div>
+
+  <div class="mode-selector">
+    <div class="mode-card selected" id="mode-normal-card" onclick="selectMode('normal')">
+      <div class="mode-icon">🎯</div>
+      <div class="mode-name">Normal</div>
+      <div class="mode-desc">Score-based. Hints and time bonus available.</div>
     </div>
-    <div class="start-stat">
-      <div class="start-stat-num">2min</div>
-      <div class="start-stat-lbl">Bonus window</div>
-    </div>
-    <div class="start-stat">
-      <div class="start-stat-num">SRE</div>
-      <div class="start-stat-lbl">Max rank</div>
+    <div class="mode-card rta" id="mode-rta-card" onclick="selectMode('rta')">
+      <div class="mode-icon">⚡</div>
+      <div class="mode-name">RTA</div>
+      <div class="mode-desc">All incidents. Fastest total time wins. No scoring.</div>
     </div>
   </div>
+
+  <div class="diff-selector" id="diff-selector">
+    <button class="diff-btn selected-easy" id="diff-easy" onclick="selectDiff('easy')">Easy</button>
+    <button class="diff-btn" id="diff-normal" onclick="selectDiff('normal')">Normal</button>
+    <button class="diff-btn" id="diff-hard" onclick="selectDiff('hard')">Hard</button>
+  </div>
+
   <div class="start-btns">
-    <button class="btn-start" onclick="startGame(false)">▶ New Session</button>
+    <button class="btn-start" id="main-start-btn" onclick="startGame(false)">▶ Start</button>
     <button class="btn-start secondary hidden" id="resume-btn" onclick="startGame(true)">↩ Resume</button>
   </div>
 </div>
 
-<!-- Result Screen -->
+<!-- ── Result Screen ── -->
 <div id="result-screen">
-  <div class="result-label">Mission Complete</div>
+  <div class="result-label" id="result-label">Mission Complete</div>
   <div class="result-rank" id="rank-msg"></div>
   <div class="result-score">Score: <span id="final-score">0</span></div>
-  <div class="result-grid">
-    <div class="result-cell">
-      <div class="result-cell-num" id="res-score">0</div>
-      <div class="result-cell-lbl">Points</div>
-    </div>
-    <div class="result-cell">
-      <div class="result-cell-num" id="res-time">0m0s</div>
-      <div class="result-cell-lbl">Total Time</div>
-    </div>
-    <div class="result-cell">
-      <div class="result-cell-num">10</div>
-      <div class="result-cell-lbl">Solved</div>
-    </div>
+  <div class="result-grid" id="result-grid">
+    <div class="result-cell"><div class="result-cell-num" id="res-score">0</div><div class="result-cell-lbl">Points</div></div>
+    <div class="result-cell"><div class="result-cell-num" id="res-time">0m0s</div><div class="result-cell-lbl">Total Time</div></div>
+    <div class="result-cell"><div class="result-cell-num" id="res-solved">0</div><div class="result-cell-lbl">Solved</div></div>
+  </div>
+  <div class="rta-result-splits" id="rta-result-splits" style="display:none;">
+    <div class="rta-result-splits-title">Split Times</div>
+    <div id="rta-result-split-rows"></div>
   </div>
   <div class="result-btns">
     <button class="btn-result primary" onclick="shareX()">Share on X</button>
@@ -502,47 +268,52 @@ body::after{
   </div>
 </div>
 
-<!-- Header -->
+<!-- ── Header ── -->
 <header id="app-header" style="display:none;">
-  <div class="hdr-brand">IncidentRoot</div>
+  <div>
+    <span class="hdr-brand">IncidentRoot</span>
+    <span class="hdr-mode-badge" id="mode-badge">Normal</span>
+  </div>
   <div class="hdr-status">
-    <div class="hdr-stat">LVL <span id="lvl-idx">1</span>/10</div>
-    <div class="hdr-stat">SCORE <span id="score">0</span></div>
-    <div class="hdr-stat">TIME <span id="timer">0.0</span>s</div>
+    <div class="hdr-stat">LVL <span id="lvl-idx">1</span>/<span id="lvl-total">10</span></div>
+    <div class="hdr-stat" id="score-hdr">SCORE <span id="score">0</span></div>
+    <div class="hdr-stat">
+      <span id="timer-normal-wrap">TIME <span id="timer">0.0</span>s</span>
+      <span id="timer-rta-wrap" style="display:none;">RTA <span id="rta-timer">0.0</span>s</span>
+    </div>
   </div>
   <div class="hdr-actions">
     <button class="hdr-btn danger" onclick="skipStage()">SKIP</button>
   </div>
 </header>
 
-<!-- App Body -->
+<!-- ── App Body ── */
 <div id="app-body" style="display:none;">
-
-  <!-- Terminal -->
   <div id="terminal-wrap">
     <div class="term-topbar">
-      <div class="term-dot red"></div>
-      <div class="term-dot yellow"></div>
-      <div class="term-dot green"></div>
+      <div class="term-dot r"></div><div class="term-dot y"></div><div class="term-dot g"></div>
       <div class="term-title">root@incident-root — bash</div>
     </div>
     <div id="terminal-box"></div>
   </div>
 
-  <!-- Sidebar -->
   <aside id="sidebar">
     <div class="sidebar-section">
       <div class="level-badge">
         <div class="level-num" id="level-badge-num">LVL 1</div>
-        <div class="level-progress">
-          <div class="level-progress-fill" id="progress-fill" style="width:10%"></div>
-        </div>
+        <div class="level-progress"><div class="level-progress-fill" id="progress-fill" style="width:5%"></div></div>
       </div>
       <div class="incident-title" id="stg-title"></div>
       <div class="incident-desc" id="stg-desc"></div>
     </div>
 
-    <div class="hint-section">
+    <!-- RTA splits (only shown in RTA mode) -->
+    <div id="rta-splits" style="display:none;">
+      <div class="rta-splits-title">⚡ Split Times</div>
+      <div id="split-rows"></div>
+    </div>
+
+    <div class="hint-section" id="hint-section">
       <button class="hint-toggle" id="hint-toggle" onclick="toggleHint()">Hint</button>
       <div class="hint-body" id="hint-body">
         <span id="hint-text"></span>
@@ -552,29 +323,12 @@ body::after{
 
     <div class="cmds-section">
       <div class="cmds-title">Available Commands</div>
-      <div class="cmd-list">
-        <span class="cmd-tag">ls</span>
-        <span class="cmd-tag">cat</span>
-        <span class="cmd-tag">chmod</span>
-        <span class="cmd-tag">chown</span>
-        <span class="cmd-tag">rm</span>
-        <span class="cmd-tag">kill</span>
-        <span class="cmd-tag">killall</span>
-        <span class="cmd-tag">apt-get</span>
-        <span class="cmd-tag">swapon</span>
-        <span class="cmd-tag">modprobe</span>
-        <span class="cmd-tag">echo</span>
-        <span class="cmd-tag">ps</span>
-        <span class="cmd-tag">dmesg</span>
-        <span class="cmd-tag">hint</span>
-        <span class="cmd-tag">clear</span>
-        <span class="cmd-tag">help</span>
-      </div>
+      <div class="cmd-list" id="cmd-list"></div>
     </div>
   </aside>
 </div>
 
-<!-- Solution Panel -->
+<!-- ── Solution Panel ── -->
 <div id="solution-panel">
   <div class="solution-inner">
     <div class="solution-badge">RESOLVED</div>
@@ -586,21 +340,204 @@ body::after{
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
 <script>
-// ── Stages Data ──
-const stagesData=[
-  {id:1,title:"Port 80 Blocked",desc:"Nginx is down. Another process is holding port 80. Investigate the logs and free the port.",fs:{"/var/log/nginx/error.log":"bind() to 0.0.0.0:80 failed (Address already in use)"},solution:"killall apache2",hint:"Check /var/log/nginx/error.log. Is another web server occupying port 80?",article:"<h3>Port Conflict</h3><p>Only one process can bind to a port at a time. Apache2 was already listening on port 80, blocking Nginx from starting. <code>killall apache2</code> terminates all apache2 processes.</p>"},
-  {id:2,title:"Permission Trap",desc:"Nginx can't read its configuration file. Fix the permissions so the service can access it.",fs:{"/etc/nginx/nginx.conf":"Error: Permission Denied"},solution:"chmod 644 /etc/nginx/nginx.conf",hint:"Configuration files should be readable by all. Try chmod 644.",article:"<h3>File Permissions</h3><p>Config files typically need 644 (owner read/write, group/others read). Use <code>chmod 644 /etc/nginx/nginx.conf</code> to restore proper access.</p>"},
-  {id:3,title:"Disk Space Exhausted",desc:"'No space left on device' errors everywhere. Find and remove the bloat.",fs:{"/var/log/syslog":"write error: No space left on device"},solution:"rm -rf /tmp/large_temp_file.log",hint:"Check /tmp for large log files that can be safely deleted.",article:"<h3>Disk Management</h3><p>A full disk halts all write operations. Temp files in /tmp are safe to delete. <code>rm -rf /tmp/large_temp_file.log</code> reclaims the space immediately.</p>"},
-  {id:4,title:"Corrupted SSH Key",desc:"SSH refuses to start. Host key permissions are dangerously open.",fs:{"/etc/ssh/ssh_host_rsa_key":"Permissions 0777 are too open."},solution:"chmod 600 /etc/ssh/ssh_host_rsa_key",hint:"Private keys must not be accessible by other users. Use chmod 600.",article:"<h3>SSH Security</h3><p>SSH enforces strict permission checks on private keys. World-readable keys are rejected as a security measure. <code>chmod 600</code> limits access to owner only.</p>"},
-  {id:5,title:"Missing Dependency",desc:"Binary won't run. libssl.so.1.1 is missing from the system.",fs:{"error":"error while loading shared libraries: cannot open shared object file: No such file or directory"},solution:"apt-get install libssl-dev",hint:"Install the SSL development library via apt-get to restore the missing .so file.",article:"<h3>Shared Libraries</h3><p>Dynamic libraries (.so files) are loaded at runtime. The <code>-dev</code> package installs both the library and development headers. Without it, dependent binaries fail to launch.</p>"},
-  {id:6,title:"Wrong Owner",desc:"Web directory is owned by root. www-data needs write access to serve files.",fs:{"/var/www/html":"Owner: root, Permissions: drwxr-xr-x"},solution:"chown www-data:www-data /var/www/html",hint:"Change the owner to www-data using chown.",article:"<h3>Ownership</h3><p>Web servers run as the www-data user for security. If the document root is owned by root, the web server can't write files, upload content, or create caches.</p>"},
-  {id:7,title:"Zombie Process",desc:"A defunct process is stuck. Normal kill signals have no effect.",fs:{"ps":"PID 9999: [app] <defunct>"},solution:"kill -9 9999",hint:"Use SIGKILL (-9) to force-terminate the process. It cannot be ignored.",article:"<h3>Process Signals</h3><p>SIGTERM can be caught and ignored by a process. SIGKILL (signal 9) is handled by the kernel directly and cannot be blocked, making it the last resort for stuck processes.</p>"},
-  {id:8,title:"DNS Resolution Failure",desc:"No domain names resolve. The server can't reach anything by hostname.",fs:{"/etc/resolv.conf":"nameserver 0.0.0.0"},solution:"echo 'nameserver 8.8.8.8' > /etc/resolv.conf",hint:"Set a valid nameserver like 8.8.8.8 in /etc/resolv.conf.",article:"<h3>DNS Configuration</h3><p><code>/etc/resolv.conf</code> defines which DNS servers to query. 0.0.0.0 is invalid. Pointing to Google's 8.8.8.8 restores name resolution immediately.</p>"},
-  {id:9,title:"SWAP Pressure",desc:"System is crawling. RAM is exhausted and swap is inactive.",fs:{"/proc/swaps":"Filename: (empty)"},solution:"swapon /swapfile",hint:"Check /proc/swaps — the swapfile exists but isn't activated. Use swapon.",article:"<h3>Swap Space</h3><p>Swap extends effective RAM by using disk space. A swapfile can be created and exist on disk but remain inactive until explicitly enabled with <code>swapon</code>.</p>"},
-  {id:10,title:"Kernel Module Missing",desc:"Iptables is failing. The ip_tables kernel module isn't loaded.",fs:{"dmesg":"modprobe: FATAL: Module ip_tables not found in directory"},solution:"modprobe ip_tables",hint:"Load the missing kernel module using modprobe.",article:"<h3>Kernel Modules</h3><p>Linux loads kernel features as modules on demand. <code>modprobe ip_tables</code> loads the netfilter module required by iptables, restoring firewall functionality without a reboot.</p>"}
+// ════════════════════════════════════════════
+// STAGES DATA — 30 incidents (Easy:1-10, Normal:11-20, Hard:21-30)
+// ════════════════════════════════════════════
+const ALL_STAGES = [
+  // ── EASY (1-10) ──
+  {id:1,diff:'easy',title:"Port 80 Blocked",
+   desc:"Nginx is down. Another process is holding port 80.",
+   fs:{"/var/log/nginx/error.log":"bind() to 0.0.0.0:80 failed (Address already in use)"},
+   solution:"killall apache2",hint:"Check /var/log/nginx/error.log. Another web server is on port 80.",
+   article:"<h3>Port Conflict</h3><p>Only one process can bind to a port at a time. Apache2 was already on port 80. <code>killall apache2</code> terminates all apache2 processes.</p>"},
+
+  {id:2,diff:'easy',title:"Permission Denied",
+   desc:"Nginx can't read its config file. Fix the permissions.",
+   fs:{"/etc/nginx/nginx.conf":"Error: Permission Denied"},
+   solution:"chmod 644 /etc/nginx/nginx.conf",hint:"Config files need to be readable. chmod 644 sets owner:rw, others:r.",
+   article:"<h3>File Permissions</h3><p>644 means owner read/write, group/others read. Services need to read config files to start.</p>"},
+
+  {id:3,diff:'easy',title:"Disk Full",
+   desc:"'No space left on device' everywhere. Clear the bloat.",
+   fs:{"/var/log/syslog":"write error: No space left on device"},
+   solution:"rm -rf /tmp/large_temp_file.log",hint:"Large temp log in /tmp. Delete it with rm.",
+   article:"<h3>Disk Management</h3><p>A full disk stops all writes. Temp files in /tmp are safe to delete immediately.</p>"},
+
+  {id:4,diff:'easy',title:"SSH Key Too Open",
+   desc:"SSH won't start. Host key permissions are world-readable.",
+   fs:{"/etc/ssh/ssh_host_rsa_key":"Permissions 0777 are too open."},
+   solution:"chmod 600 /etc/ssh/ssh_host_rsa_key",hint:"Private keys must be owner-only. Use chmod 600.",
+   article:"<h3>SSH Security</h3><p>SSH refuses world-readable private keys as a security measure. <code>chmod 600</code> restricts to owner only.</p>"},
+
+  {id:5,diff:'easy',title:"Missing Library",
+   desc:"App won't run. libssl.so.1.1 is missing.",
+   fs:{"error":"libssl.so.1.1: cannot open shared object file"},
+   solution:"apt-get install libssl-dev",hint:"Install the SSL dev library via apt-get.",
+   article:"<h3>Shared Libraries</h3><p>Dynamic libraries are loaded at runtime. Installing the -dev package restores missing .so files.</p>"},
+
+  {id:6,diff:'easy',title:"Wrong Owner",
+   desc:"Web dir is root-owned. www-data can't write to it.",
+   fs:{"/var/www/html":"Owner: root drwxr-xr-x"},
+   solution:"chown www-data:www-data /var/www/html",hint:"Change owner to www-data using chown.",
+   article:"<h3>Ownership</h3><p>Web servers run as www-data for security. The document root must be owned by www-data to write files.</p>"},
+
+  {id:7,diff:'easy',title:"Zombie Process",
+   desc:"A defunct process is consuming resources. Normal kill has no effect.",
+   fs:{"ps":"PID 9999: [app] <defunct>"},
+   solution:"kill -9 9999",hint:"Use SIGKILL (-9) to force-terminate. It cannot be ignored.",
+   article:"<h3>Process Signals</h3><p>SIGTERM can be ignored. SIGKILL (9) is handled by the kernel and cannot be blocked.</p>"},
+
+  {id:8,diff:'easy',title:"DNS Broken",
+   desc:"No domain names resolve. The nameserver is invalid.",
+   fs:{"/etc/resolv.conf":"nameserver 0.0.0.0"},
+   solution:"echo 'nameserver 8.8.8.8' > /etc/resolv.conf",hint:"Set a valid nameserver like 8.8.8.8 in /etc/resolv.conf.",
+   article:"<h3>DNS Config</h3><p>/etc/resolv.conf controls DNS resolution. 0.0.0.0 is invalid. Google's 8.8.8.8 restores name resolution.</p>"},
+
+  {id:9,diff:'easy',title:"Swap Inactive",
+   desc:"System is slow. RAM full, swap not enabled.",
+   fs:{"/proc/swaps":"Filename: (empty)"},
+   solution:"swapon /swapfile",hint:"The swapfile exists but isn't activated. Use swapon.",
+   article:"<h3>Swap Space</h3><p>Swap extends RAM using disk. A swapfile must be explicitly enabled with <code>swapon</code>.</p>"},
+
+  {id:10,diff:'easy',title:"Kernel Module Missing",
+   desc:"Iptables failing. Module ip_tables not loaded.",
+   fs:{"dmesg":"modprobe: FATAL: Module ip_tables not found"},
+   solution:"modprobe ip_tables",hint:"Load the missing kernel module using modprobe.",
+   article:"<h3>Kernel Modules</h3><p><code>modprobe ip_tables</code> loads the netfilter module required by iptables without a reboot.</p>"},
+
+  // ── NORMAL (11-20) ──
+  {id:11,diff:'normal',title:"Cron Job Silent",
+   desc:"Scheduled backup cron job has stopped running silently.",
+   fs:{"/var/log/cron":"(CRON) ERROR (grandchild #1234 failed with exit status 1)","/etc/cron.d/backup":"* * * * * root /usr/local/bin/backup.sh"},
+   solution:"chmod +x /usr/local/bin/backup.sh",hint:"The script exists but may not be executable. Check its permissions.",
+   article:"<h3>Cron Execution</h3><p>Cron silently fails when a script isn't executable. <code>chmod +x</code> adds the execute bit, allowing cron to run it.</p>"},
+
+  {id:12,diff:'normal',title:"MySQL Won't Start",
+   desc:"MySQL fails to start. Data directory has wrong permissions.",
+   fs:{"/var/log/mysql/error.log":"[ERROR] Can't create/write to file '/var/lib/mysql/mysql.pid'"},
+   solution:"chown -R mysql:mysql /var/lib/mysql",hint:"MySQL's data directory must be owned by the mysql user.",
+   article:"<h3>Service Ownership</h3><p>Services running as specific users need ownership of their data directories. <code>chown -R mysql:mysql</code> recursively fixes ownership.</p>"},
+
+  {id:13,diff:'normal',title:"Log Rotation Broken",
+   desc:"Logs filling disk. Logrotate config has a syntax error.",
+   fs:{"/etc/logrotate.d/nginx":"error: bad config file syntax","/var/log/nginx/access.log":"(4.2GB)"},
+   solution:"chmod 644 /etc/logrotate.d/nginx",hint:"Logrotate won't read configs with wrong permissions.",
+   article:"<h3>Log Rotation</h3><p>Logrotate config files must be 644 and owned by root. Files with wrong permissions are silently skipped, causing log buildup.</p>"},
+
+  {id:14,diff:'normal',title:"Out of Inodes",
+   desc:"Can't create files even though df shows space available.",
+   fs:{"df -i":"Filesystem: /dev/sda1, Inodes: 100%, IFree: 0"},
+   solution:"rm -rf /tmp/sessions/*",hint:"You've run out of inodes, not disk space. Thousands of small files in /tmp/sessions are consuming them.",
+   article:"<h3>Inode Exhaustion</h3><p>Each file needs an inode. You can run out of inodes before disk space if many small files exist. Deleting session files frees inodes immediately.</p>"},
+
+  {id:15,diff:'normal',title:"Port Blocked by Firewall",
+   desc:"New app is running but can't be reached from outside on port 8080.",
+   fs:{"netstat":"tcp 0.0.0.0:8080 LISTEN"},
+   solution:"modprobe iptable_filter",hint:"The app is listening but iptables module isn't loaded. Load it.",
+   article:"<h3>Firewall Modules</h3><p>Iptables requires kernel modules to function. If <code>iptable_filter</code> isn't loaded, firewall rules can't be evaluated and traffic may be silently dropped.</p>"},
+
+  {id:16,diff:'normal',title:"SSL Certificate Expired",
+   desc:"HTTPS requests are failing. Certificate validation error.",
+   fs:{"/etc/nginx/certs/cert.pem":"notAfter=Jan 1 00:00:00 2023 GMT (EXPIRED)"},
+   solution:"chmod 600 /etc/nginx/certs/cert.key",hint:"The cert exists but the private key permissions are too open. Fix them.",
+   article:"<h3>TLS Key Security</h3><p>Private keys must be 600 (owner read/write only). Nginx refuses to load keys accessible by other users to prevent credential theft.</p>"},
+
+  {id:17,diff:'normal',title:"Systemd Service Loop",
+   desc:"A service keeps restarting in a crash loop. Logs show permission error.",
+   fs:{"/var/log/syslog":"app.service: Main process exited, restarting","journalctl":"Permission denied: /run/app/app.sock"},
+   solution:"chmod 777 /run/app",hint:"The service socket directory needs broader permissions for the app to write its socket file.",
+   article:"<h3>Socket Permissions</h3><p>Unix domain sockets require the parent directory to be writable by the process. Setting the /run/app directory to 777 allows the service to create its socket.</p>"},
+
+  {id:18,diff:'normal',title:"NTP Drift",
+   desc:"Server clock is 5 minutes off. TLS handshakes are failing.",
+   fs:{"/etc/ntp.conf":"server 0.0.0.0 # MISCONFIGURED"},
+   solution:"echo 'server pool.ntp.org' > /etc/ntp.conf",hint:"The NTP server address is invalid. Set a real NTP pool.",
+   article:"<h3>Clock Synchronization</h3><p>TLS certificates have time-based validity. A drifted clock causes cert validation failures. pool.ntp.org is a reliable public NTP cluster.</p>"},
+
+  {id:19,diff:'normal',title:"Shared Memory Full",
+   desc:"PostgreSQL is crashing. Shared memory segments are exhausted.",
+   fs:{"/proc/sys/kernel/shmmax":"67108864","/var/log/postgresql":"could not create shared memory segment"},
+   solution:"echo 'kernel.shmmax=536870912' >> /etc/sysctl.conf",hint:"Increase the kernel shared memory limit in sysctl.conf.",
+   article:"<h3>Kernel Parameters</h3><p>PostgreSQL requires substantial shared memory. The kernel.shmmax parameter limits the maximum shared memory segment size. Increasing it allows PostgreSQL to allocate the memory it needs.</p>"},
+
+  {id:20,diff:'normal',title:"Apache VHost Conflict",
+   desc:"Two virtual hosts respond but wrong site appears for the second domain.",
+   fs:{"/etc/apache2/sites-enabled/default":"ServerName site1.com","/etc/apache2/sites-enabled/site2":"ServerName site2.com (permissions: 000)"},
+   solution:"chmod 644 /etc/apache2/sites-enabled/site2",hint:"Apache can't read the site2 config. Check its permissions.",
+   article:"<h3>Virtual Host Configs</h3><p>Apache silently skips config files it can't read. When site2 config has 000 permissions, Apache falls through to the default vhost, serving the wrong site.</p>"},
+
+  // ── HARD (21-30) ──
+  {id:21,diff:'hard',title:"OOM Killer Rampage",
+   desc:"Critical service keeps getting killed. Out-of-memory killer is targeting it.",
+   fs:{"/var/log/syslog":"Out of memory: Kill process 2234 (nginx) score 800","/proc/sys/vm/overcommit_memory":"0"},
+   solution:"echo 'vm.overcommit_memory=2' >> /etc/sysctl.conf",hint:"The OOM killer is too aggressive. Disable overcommit to prevent it from killing critical processes.",
+   article:"<h3>OOM Killer</h3><p>Linux's OOM killer terminates processes when memory is exhausted. Setting overcommit_memory=2 prevents the kernel from allocating more virtual memory than available, stopping reckless processes before OOM occurs.</p>"},
+
+  {id:22,diff:'hard',title:"Race Condition in Startup",
+   desc:"Service fails at boot but starts fine manually. Dependency ordering issue.",
+   fs:{"/etc/systemd/system/app.service":"[Unit] After=network.target (missing database dependency)","/var/log/app":"Connection refused: database not ready"},
+   solution:"echo 'After=postgresql.service' >> /etc/systemd/system/app.service",hint:"The app starts before PostgreSQL. Add PostgreSQL as a dependency in the systemd unit.",
+   article:"<h3>Systemd Dependencies</h3><p>Systemd's After= directive ensures ordering but not dependency. Adding <code>After=postgresql.service</code> makes systemd wait for PostgreSQL before starting the app service.</p>"},
+
+  {id:23,diff:'hard',title:"TCP TIME_WAIT Exhaustion",
+   desc:"Web server throws 'Cannot assign requested address'. Ports are exhausted.",
+   fs:{"netstat":"tcp connections in TIME_WAIT: 28000+","/proc/sys/net/ipv4/tcp_fin_timeout":"120"},
+   solution:"echo 'net.ipv4.tcp_fin_timeout=15' >> /etc/sysctl.conf",hint:"TCP sockets stay in TIME_WAIT too long. Reduce tcp_fin_timeout in sysctl.",
+   article:"<h3>TCP Socket Recycling</h3><p>TIME_WAIT prevents port reuse for 2*MSL. With high traffic, this exhausts the ephemeral port range. Reducing tcp_fin_timeout to 15s recycles ports 8x faster.</p>"},
+
+  {id:24,diff:'hard',title:"Kernel Panic on Boot",
+   desc:"Server rebooted into emergency mode. Init system can't mount root fs.",
+   fs:{"/etc/fstab":"UUID=abc123 / ext4 defaults 0 1 (UUID not found in blkid)"},
+   solution:"echo '#UUID=abc123 / ext4 defaults 0 1' > /etc/fstab",hint:"A stale UUID in fstab is preventing mount. Comment out the broken line.",
+   article:"<h3>fstab Recovery</h3><p>A wrong UUID in /etc/fstab causes mount failures at boot. Commenting out the broken entry allows the system to boot. Proper fix is updating to the correct UUID from <code>blkid</code> output.</p>"},
+
+  {id:25,diff:'hard',title:"Memory Leak Cascade",
+   desc:"Server slowing to a crawl over hours. One process is consuming all RAM.",
+   fs:{"ps aux":"PID 5555 mem: 98% RSS: 7.8GB [java]","/proc/5555/status":"VmRSS: 8192000 kB"},
+   solution:"kill -9 5555",hint:"A Java process has consumed all memory. Force kill it with SIGKILL.",
+   article:"<h3>Memory Leak Response</h3><p>When a process leaks memory to the point of system instability, SIGKILL is the immediate remedy. Root cause analysis (heap dumps, profilers) should follow to prevent recurrence.</p>"},
+
+  {id:26,diff:'hard',title:"Entropy Pool Starved",
+   desc:"Cryptographic operations hang indefinitely. /dev/random blocking all TLS.",
+   fs:{"/proc/sys/kernel/random/entropy_avail":"8","/dev/random":"blocking (waiting for entropy)"},
+   solution:"modprobe virtio_rng",hint:"The system has no entropy source. Load the virtio random number generator module.",
+   article:"<h3>Entropy & Randomness</h3><p>Linux's /dev/random blocks when entropy is low. In virtualized environments, the host's RNG can be exposed via virtio_rng. This provides a hardware-backed entropy source, unblocking cryptographic operations.</p>"},
+
+  {id:27,diff:'hard',title:"Split-Brain DNS",
+   desc:"App works internally but external users get wrong IP. DNS split-brain.",
+   fs:{"/etc/hosts":"192.168.1.10 api.example.com (internal)","/etc/resolv.conf":"nameserver 8.8.8.8"},
+   solution:"rm /etc/hosts",hint:"The /etc/hosts file is overriding external DNS for api.example.com. Remove it.",
+   article:"<h3>DNS Resolution Order</h3><p>/etc/hosts takes precedence over DNS by default (controlled by /etc/nsswitch.conf). A stale internal override in /etc/hosts causes external hostnames to resolve to wrong IPs.</p>"},
+
+  {id:28,diff:'hard',title:"CPU Throttling Silent",
+   desc:"Compute jobs are 10x slower than expected. CPU governor is wrong.",
+   fs:{"/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor":"powersave","/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq":"3200000"},
+   solution:"echo 'performance' > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",hint:"The CPU governor is set to powersave. Switch it to performance mode.",
+   article:"<h3>CPU Frequency Scaling</h3><p>Linux's cpufreq subsystem adjusts CPU speed based on governor policy. 'powersave' keeps frequency minimal. Writing 'performance' to the scaling_governor file forces maximum frequency immediately.</p>"},
+
+  {id:29,diff:'hard',title:"Ulimit File Descriptor Exhaustion",
+   desc:"App returns 'Too many open files'. Connections are being rejected.",
+   fs:{"/proc/sys/fs/file-max":"65536","/proc/$(pgrep app)/limits":"Max open files: 1024"},
+   solution:"echo '* soft nofile 65536' >> /etc/security/limits.conf",hint:"The per-process file descriptor limit is too low. Raise it in limits.conf.",
+   article:"<h3>ulimit & File Descriptors</h3><p>Each socket/file uses a file descriptor. The default 1024 limit is too low for high-concurrency apps. /etc/security/limits.conf sets persistent per-user/process limits that survive reboots.</p>"},
+
+  {id:30,diff:'hard',title:"NUMA Imbalance",
+   desc:"Multi-socket server has severe memory latency. One NUMA node is overloaded.",
+   fs:{"/proc/buddyinfo":"Node 0: memory near-full, Node 1: mostly free","numastat":"node0 miss: 2847291, node1 miss: 12"},
+   solution:"echo 'interleave=all' > /proc/sys/kernel/numa_balancing",hint:"NUMA memory is unbalanced. Enable NUMA balancing to interleave memory across nodes.",
+   article:"<h3>NUMA Architecture</h3><p>Non-Uniform Memory Access means memory access times vary by physical location. When one NUMA node is overloaded, remote memory accesses add latency. NUMA balancing migrates pages to local nodes, reducing cross-node traffic.</p>"}
 ];
 
-// ── Terminal Setup ──
+// Difficulty sets
+const DIFF_SETS = {
+  easy:   ALL_STAGES.filter(s=>s.diff==='easy'),
+  normal: ALL_STAGES.filter(s=>s.diff==='easy'||s.diff==='normal'),
+  hard:   ALL_STAGES // all 30
+};
+
+// ════════════════════════════════════════════
+// Terminal
+// ════════════════════════════════════════════
 const term = new Terminal({
   cursorBlink:true,fontSize:14,fontFamily:'"JetBrains Mono",monospace',
   theme:{background:'#000000',foreground:'#c9e0f5',cursor:'#00d4ff',selection:'rgba(0,212,255,0.2)'}
@@ -608,11 +545,19 @@ const term = new Terminal({
 const fitAddon = new FitAddon.FitAddon();
 term.loadAddon(fitAddon);
 
-// ── State ──
+// ════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════
+let gameMode='normal'; // 'normal' | 'rta'
+let difficulty='easy';
+let stages=[];
 let currentLvl=0,cmd='',cursorIdx=0,score=0,totalSeconds=0;
 let history=[],historyIdx=-1,missCount=0,startTime=0;
-let timerInterval=null,currentStageBaseScore=100;
-let hintShown=false,hintPenaltyApplied=false;
+let timerInterval=null,rtaStart=0,rtaInterval=null;
+let currentStageBaseScore=100,hintShown=false,hintPenaltyApplied=false;
+let rtaSplits=[]; // [{title, time}]
+
+const SUPPORTED_CMDS = ['ls','cat','chmod','chown','rm','kill','killall','apt-get','swapon','modprobe','echo','ps','dmesg','netstat','help','clear','hint'];
 
 window.onload=function(){
   const container=document.getElementById('terminal-box');
@@ -620,98 +565,188 @@ window.onload=function(){
   fitAddon.fit();
   window.addEventListener('resize',()=>fitAddon.fit());
   container.addEventListener('click',()=>term.focus());
+
+  // build cmd list
+  const cl=document.getElementById('cmd-list');
+  SUPPORTED_CMDS.forEach(c=>{const s=document.createElement('span');s.className='cmd-tag';s.innerText=c;cl.appendChild(s);});
+
   const saved=localStorage.getItem('ir_lvl');
-  if(saved&&parseInt(saved)>0)document.getElementById('resume-btn').classList.remove('hidden');
+  if(saved&&parseInt(saved)>0&&localStorage.getItem('ir_mode')==='normal'){
+    document.getElementById('resume-btn').classList.remove('hidden');
+  }
 };
 
+// ── Mode & Diff selection ──
+function selectMode(m){
+  gameMode=m;
+  document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('mode-'+m+'-card').classList.add('selected');
+  document.getElementById('diff-selector').style.display=m==='rta'?'none':'flex';
+  const btn=document.getElementById('main-start-btn');
+  if(m==='rta'){btn.className='btn-start rta-btn';btn.textContent='⚡ Start RTA';}
+  else{btn.className='btn-start';btn.textContent='▶ Start';}
+}
+function selectDiff(d){
+  difficulty=d;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.className='diff-btn');
+  document.getElementById('diff-'+d).className='diff-btn selected-'+d;
+}
+// init defaults
+selectMode('normal');selectDiff('easy');
+
+// ── Game Start ──
 function startGame(isResume=false){
-  if(isResume){
+  if(gameMode==='rta'){
+    stages=[...ALL_STAGES]; // all 30
+    localStorage.clear();
+    score=0;currentLvl=0;totalSeconds=0;rtaSplits=[];
+  } else if(isResume){
+    difficulty=localStorage.getItem('ir_diff')||'easy';
+    stages=DIFF_SETS[difficulty];
     currentLvl=parseInt(localStorage.getItem('ir_lvl'))||0;
     score=parseInt(localStorage.getItem('ir_score'))||0;
     totalSeconds=parseFloat(localStorage.getItem('ir_time'))||0;
-  }else{
-    localStorage.clear();score=0;currentLvl=0;totalSeconds=0;
+  } else {
+    stages=DIFF_SETS[difficulty];
+    localStorage.clear();
+    score=0;currentLvl=0;totalSeconds=0;
   }
+
   document.getElementById('start-screen').style.display='none';
   document.getElementById('app-header').style.display='flex';
   document.getElementById('app-body').style.display='flex';
+  document.getElementById('lvl-total').innerText=stages.length;
+
+  // RTA UI
+  const isRTA=gameMode==='rta';
+  document.getElementById('rta-splits').style.display=isRTA?'block':'none';
+  document.getElementById('hint-section').style.display=isRTA?'none':'block';
+  document.getElementById('score-hdr').style.display=isRTA?'none':'block';
+  document.getElementById('timer-normal-wrap').style.display=isRTA?'none':'inline';
+  document.getElementById('timer-rta-wrap').style.display=isRTA?'inline':'none';
+
+  // mode badge
+  const badge=document.getElementById('mode-badge');
+  if(isRTA){badge.textContent='RTA';badge.className='hdr-mode-badge rta';}
+  else{badge.textContent=difficulty.charAt(0).toUpperCase()+difficulty.slice(1);badge.className='hdr-mode-badge '+difficulty;}
+
+  if(isRTA){
+    rtaStart=performance.now();
+    rtaInterval=setInterval(()=>{
+      document.getElementById('rta-timer').innerText=((performance.now()-rtaStart)/1000).toFixed(1);
+    },100);
+    buildSplitBoard();
+  }
+
   loadStage();
 }
 
+// ── Split Board ──
+function buildSplitBoard(){
+  const rows=document.getElementById('split-rows');
+  rows.innerHTML=stages.map((s,i)=>`
+    <div class="rta-split-row" id="split-row-${i}">
+      <span class="rta-split-lbl">#${i+1} ${s.title}</span>
+      <span class="rta-split-time pending" id="split-time-${i}">--:--.--</span>
+    </div>`).join('');
+}
+
+function recordSplit(idx,t){
+  const el=document.getElementById('split-time-'+idx);
+  if(el){
+    const m=Math.floor(t/60),s=(t%60).toFixed(2).padStart(5,'0');
+    el.textContent=`${m}:${s}`;
+    el.className='rta-split-time';
+  }
+  rtaSplits[idx]={title:stages[idx].title,time:t};
+}
+
+// ── Load Stage ──
 function loadStage(){
-  if(currentLvl>=stagesData.length){showResult();return;}
-  const s=stagesData[currentLvl];
+  if(currentLvl>=stages.length){showResult();return;}
+  const s=stages[currentLvl];
   currentStageBaseScore=100;
-  hintShown=false;hintPenaltyApplied=false;
-  missCount=0;
+  hintShown=false;hintPenaltyApplied=false;missCount=0;
 
   document.getElementById('lvl-idx').innerText=currentLvl+1;
   document.getElementById('level-badge-num').innerText='LVL '+(currentLvl+1);
-  document.getElementById('progress-fill').style.width=((currentLvl+1)/stagesData.length*100)+'%';
+  document.getElementById('progress-fill').style.width=((currentLvl+1)/stages.length*100)+'%';
   document.getElementById('stg-title').innerText=s.title;
   document.getElementById('stg-desc').innerText=s.desc;
   document.getElementById('solution-panel').style.display='none';
   document.getElementById('hint-body').classList.remove('open');
   document.getElementById('hint-toggle').classList.remove('open');
   document.getElementById('hint-penalty').style.display='none';
-  document.getElementById('hint-text').innerText=s.hint;
+  document.getElementById('hint-text').innerText=s.hint||'';
 
-  localStorage.setItem('ir_lvl',currentLvl);
-  localStorage.setItem('ir_score',score);
-  localStorage.setItem('ir_time',totalSeconds);
+  // highlight current split
+  if(gameMode==='rta'){
+    document.querySelectorAll('.rta-split-time').forEach(el=>el.classList.remove('current'));
+    const cur=document.getElementById('split-time-'+currentLvl);
+    if(cur)cur.className='rta-split-time current';
+  }
+
+  if(gameMode!=='rta'){
+    localStorage.setItem('ir_lvl',currentLvl);
+    localStorage.setItem('ir_score',score);
+    localStorage.setItem('ir_time',totalSeconds);
+    localStorage.setItem('ir_diff',difficulty);
+    localStorage.setItem('ir_mode',gameMode);
+  }
 
   term.clear();
-  term.writeln(`\x1b[1;36m╔══════════════════════════════════════╗\x1b[0m`);
-  term.writeln(`\x1b[1;36m║  INCIDENT #${String(currentLvl+1).padStart(2,'0')} — ${s.title.padEnd(22,' ')}║\x1b[0m`);
-  term.writeln(`\x1b[1;36m╚══════════════════════════════════════╝\x1b[0m`);
+  term.writeln(`\x1b[1;36m╔══════════════════════════════════════════╗\x1b[0m`);
+  term.writeln(`\x1b[1;36m║  INCIDENT #${String(currentLvl+1).padStart(2,'0')} — ${s.title.slice(0,26).padEnd(26,' ')}  ║\x1b[0m`);
+  term.writeln(`\x1b[1;36m╚══════════════════════════════════════════╝\x1b[0m`);
   term.writeln('');
   term.writeln(`\x1b[2m${s.desc}\x1b[0m`);
   term.writeln('');
 
   startTime=performance.now();
   if(timerInterval)clearInterval(timerInterval);
-  timerInterval=setInterval(()=>{
-    const now=(performance.now()-startTime)/1000;
-    const el=document.getElementById('timer');
-    el.innerText=now.toFixed(1);
-    if(now>120){el.classList.add('danger');}
-    else{el.classList.remove('danger');}
-  },100);
+  if(gameMode!=='rta'){
+    timerInterval=setInterval(()=>{
+      const now=(performance.now()-startTime)/1000;
+      const el=document.getElementById('timer');
+      el.innerText=now.toFixed(1);
+      now>120?el.classList.add('danger'):el.classList.remove('danger');
+    },100);
+  }
 
   drawPrompt();
   term.focus();
 }
 
+// ── Hint ──
 function toggleHint(){
+  if(gameMode==='rta')return;
   const body=document.getElementById('hint-body');
   const btn=document.getElementById('hint-toggle');
   const open=body.classList.contains('open');
-  if(!open){
-    // first time: apply penalty
-    if(!hintShown){
-      hintShown=true;
-      if(!hintPenaltyApplied){
-        hintPenaltyApplied=true;
-        currentStageBaseScore=50;
-        document.getElementById('hint-penalty').style.display='block';
-        term.writeln(`\r\n\x1b[33m[HINT] Base score reduced to 50\x1b[0m`);
-      }
+  if(!open&&!hintShown){
+    hintShown=true;
+    if(!hintPenaltyApplied){
+      hintPenaltyApplied=true;
+      currentStageBaseScore=50;
+      document.getElementById('hint-penalty').style.display='block';
+      term.writeln(`\x1b[33m[HINT] Base score reduced to 50\x1b[0m`);
     }
-    body.classList.add('open');
-    btn.classList.add('open');
-  }else{
-    body.classList.remove('open');
-    btn.classList.remove('open');
   }
+  open?(body.classList.remove('open'),btn.classList.remove('open')):(body.classList.add('open'),btn.classList.add('open'));
 }
 
 function skipStage(){
-  if(confirm('Skip this incident? You\'ll score 0 for this level.')){
+  if(confirm("Skip this incident? You'll score 0 for this level.")){
     clearInterval(timerInterval);
+    if(gameMode==='rta'){
+      const t=(performance.now()-rtaStart)/1000-rtaSplits.slice(0,currentLvl).reduce((a,s)=>a+(s?s.time:0),0);
+      recordSplit(currentLvl,t);
+    }
     nextStage();
   }
 }
 
+// ── Terminal I/O ──
 function drawPrompt(){
   term.write(`\r\n\x1b[1;32mroot@incident-root\x1b[0m:\x1b[1;34m~\x1b[0m# `);
   cmd='';cursorIdx=0;
@@ -736,53 +771,53 @@ term.onData(data=>{
     default:if(data.charCodeAt(0)>=32)insertText(data);
   }
 });
+function insertText(t){const tail=cmd.slice(cursorIdx);cmd=cmd.slice(0,cursorIdx)+t+tail;term.write('\x1b[s'+t+tail+'\x1b[u');for(let i=0;i<t.length;i++){term.write('\x1b[C');cursorIdx++;}}
+function replaceLine(n){while(cursorIdx>0){term.write('\b\x1b[P');cursorIdx--;}term.write('\x1b[K');cmd=n;term.write(cmd);cursorIdx=cmd.length;}
 
-function insertText(text){
-  const tail=cmd.slice(cursorIdx);
-  cmd=cmd.slice(0,cursorIdx)+text+tail;
-  term.write('\x1b[s'+text+tail+'\x1b[u');
-  for(let i=0;i<text.length;i++){term.write('\x1b[C');cursorIdx++;}
-}
-function replaceLine(newCmd){
-  while(cursorIdx>0){term.write('\b\x1b[P');cursorIdx--;}
-  term.write('\x1b[K');cmd=newCmd;term.write(cmd);cursorIdx=cmd.length;
-}
-
+// ── Command Processing ──
 function processCmd(input){
   if(!input)return;
-  const s=stagesData[currentLvl];
+  const s=stages[currentLvl];
 
-  // check solution
+  // solution check
   if(input===s.solution||input==='sudo '+s.solution){
     clearInterval(timerInterval);
     const t=(performance.now()-startTime)/1000;
     totalSeconds+=t;
-    const timeBonus=t<=120?100:0;
-    const stageScore=currentStageBaseScore+timeBonus;
-    score+=stageScore;
-    document.getElementById('score').innerText=score;
-    term.writeln(`\x1b[1;32m[OK] Resolved in ${t.toFixed(1)}s — +${stageScore} pts (base:${currentStageBaseScore} bonus:${timeBonus})\x1b[0m`);
+
+    if(gameMode==='rta'){
+      // RTA: record split from RTA start
+      const rtaElapsed=(performance.now()-rtaStart)/1000;
+      const splitTime=rtaElapsed-rtaSplits.slice(0,currentLvl).reduce((a,sp)=>a+(sp?sp.time:0),0);
+      recordSplit(currentLvl,splitTime);
+      term.writeln(`\x1b[1;32m[OK] Resolved — split: ${splitTime.toFixed(2)}s | total: ${rtaElapsed.toFixed(2)}s\x1b[0m`);
+    } else {
+      const timeBonus=t<=120?100:0;
+      const ss=currentStageBaseScore+timeBonus;
+      score+=ss;
+      document.getElementById('score').innerText=score;
+      term.writeln(`\x1b[1;32m[OK] Resolved in ${t.toFixed(1)}s — +${ss} pts (base:${currentStageBaseScore} bonus:${timeBonus})\x1b[0m`);
+    }
     showSolution(s);
     return;
   }
 
   missCount++;
-  if(missCount>=3&&!hintShown){
-    term.writeln(`\x1b[33m[SYSTEM] ${3-Math.min(missCount,3)} failed attempts. Type 'hint' or check the sidebar.\x1b[0m`);
+  if(missCount>=3&&!hintShown&&gameMode!=='rta'){
+    term.writeln(`\x1b[33m[SYSTEM] ${missCount} failed attempts. Check the sidebar for a hint.\x1b[0m`);
   }
 
   const args=input.split(' ');
   const base=args[0];
-  const supported=['ls','cat','chmod','chown','rm','kill','killall','apt-get','swapon','modprobe','echo','ps','dmesg','help','clear','hint'];
-
-  if(base==='hint'){toggleHint();term.write('\x1b[36m[hint panel toggled]\x1b[0m');return;}
+  if(base==='hint'&&gameMode!=='rta'){toggleHint();term.write('\x1b[36m[hint panel toggled]\x1b[0m');return;}
   if(base==='clear'){term.clear();return;}
-  if(base==='help'){term.write('\x1b[2mAvailable: '+supported.join(', ')+'\x1b[0m');return;}
+  if(base==='help'){term.write('\x1b[2mAvailable: '+SUPPORTED_CMDS.join(', ')+'\x1b[0m');return;}
   if(base==='ls'){term.write('\x1b[36m'+Object.keys(s.fs).join('  ')+'\x1b[0m');return;}
   if(base==='cat'){const v=s.fs[args[1]];term.write(v?'\x1b[33m'+v+'\x1b[0m':`cat: ${args[1]||''}: No such file or directory`);return;}
-  if(base==='ps'){term.write('\x1b[2mPID  TTY   TIME CMD\r\n 562 pts/0 00:00 systemd\r\n'+Object.values(s.fs).join('\r\n')+'\x1b[0m');return;}
+  if(base==='ps'){term.write('\x1b[2mPID  TTY   TIME CMD\r\n 1   pts/0 00:00 systemd\r\n'+Object.values(s.fs).slice(0,2).join('\r\n')+'\x1b[0m');return;}
   if(base==='dmesg'){const v=s.fs['dmesg'];term.write(v?'\x1b[33m'+v+'\x1b[0m':'(no relevant kernel messages)');return;}
-  if(supported.includes(base)){term.write(`\x1b[31m[EXEC] Command ran but the incident persists.\x1b[0m`);return;}
+  if(base==='netstat'){const v=s.fs['netstat'];term.write(v?'\x1b[33m'+v+'\x1b[0m':'(no connections)');return;}
+  if(SUPPORTED_CMDS.includes(base)){term.write(`\x1b[31m[EXEC] Command ran but the incident persists.\x1b[0m`);return;}
   term.write(`\x1b[31mbash: ${base}: command not found\x1b[0m`);
 }
 
@@ -796,32 +831,63 @@ function nextStage(){
   loadStage();
 }
 
+// ── Result ──
 function showResult(){
   clearInterval(timerInterval);
-  const mins=Math.floor(totalSeconds/60);
-  const secs=Math.floor(totalSeconds%60);
+  clearInterval(rtaInterval);
   document.getElementById('result-screen').style.display='flex';
   document.getElementById('app-header').style.display='none';
   document.getElementById('app-body').style.display='none';
 
-  let rank='Junior Ops';
-  if(score>=1800)rank='God of SRE';
-  else if(score>=1500)rank='Legendary SRE';
-  else if(score>=1100)rank='Senior Engineer';
-  else if(score>=700)rank='SysAdmin';
+  const mins=Math.floor(totalSeconds/60);
+  const secs=Math.floor(totalSeconds%60);
 
-  document.getElementById('rank-msg').innerText=rank;
-  document.getElementById('final-score').innerText=score;
-  document.getElementById('res-score').innerText=score;
-  document.getElementById('res-time').innerText=`${mins}m${secs}s`;
-  localStorage.clear();
+  if(gameMode==='rta'){
+    const rtaTotal=(performance.now()-rtaStart)/1000;
+    const rtaM=Math.floor(rtaTotal/60),rtaS=(rtaTotal%60).toFixed(2);
+    document.getElementById('rank-msg').textContent=`${rtaM}:${rtaS.padStart(5,'0')}`;
+    document.getElementById('rank-msg').className='result-rank rta-result';
+    document.getElementById('result-label').textContent='RTA Complete';
+    document.getElementById('final-score').textContent=`${rtaM}m ${Math.floor(rtaTotal%60)}s`;
+    document.getElementById('res-score').textContent='—';
+    document.getElementById('res-time').textContent=`${rtaM}m${Math.floor(rtaTotal%60)}s`;
+    document.getElementById('res-solved').textContent=stages.length;
+
+    // show splits table
+    const sp=document.getElementById('rta-result-splits');
+    sp.style.display='block';
+    const rows=document.getElementById('rta-result-split-rows');
+    rows.innerHTML=rtaSplits.map((s,i)=>{
+      if(!s)return`<div class="rta-result-row"><span>#${i+1} ${stages[i].title}</span><span>skipped</span></div>`;
+      const m=Math.floor(s.time/60),ss=(s.time%60).toFixed(2).padStart(5,'0');
+      return`<div class="rta-result-row"><span>#${i+1} ${s.title}</span><span>${m}:${ss}</span></div>`;
+    }).join('')+`<div class="rta-result-row total"><span>TOTAL</span><span>${rtaM}:${rtaS.padStart(5,'0')}</span></div>`;
+  } else {
+    let rank='Junior Ops';
+    if(score>=2800)rank='God of SRE';
+    else if(score>=2200)rank='Legendary SRE';
+    else if(score>=1600)rank='Senior Engineer';
+    else if(score>=900)rank='SysAdmin';
+    document.getElementById('rank-msg').textContent=rank;
+    document.getElementById('rank-msg').className='result-rank';
+    document.getElementById('result-label').textContent='Mission Complete';
+    document.getElementById('final-score').textContent=score;
+    document.getElementById('res-score').textContent=score;
+    document.getElementById('res-time').textContent=`${mins}m${secs}s`;
+    document.getElementById('res-solved').textContent=stages.length;
+    document.getElementById('rta-result-splits').style.display='none';
+    localStorage.clear();
+  }
 }
 
+// ── Share ──
 function shareX(){
-  const rank=document.getElementById('rank-msg').innerText;
-  const s=score;
-  const text=encodeURIComponent(`[IncidentRoot]\nRANK: ${rank}\nSCORE: ${s}\n\nCan you resolve all 10 Linux incidents?\n#IncidentRoot #Linux #SRE`);
-  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent('https://incident.f5.si')}`);
+  const isRTA=gameMode==='rta';
+  const rank=document.getElementById('rank-msg').textContent;
+  const text=isRTA
+    ?`[IncidentRoot RTA]\nTIME: ${rank}\nAll ${ALL_STAGES.length} Linux incidents resolved!\n#IncidentRoot #Linux #SRE #RTA`
+    :`[IncidentRoot]\nRANK: ${rank}\nSCORE: ${score}\nDifficulty: ${difficulty}\n#IncidentRoot #Linux #SRE`;
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent('https://incident.f5.si')}`);
 }
 </script>
 </body>
